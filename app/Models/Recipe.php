@@ -14,6 +14,13 @@ class Recipe extends Model
         'item_id',
         'quantity',
         'unit',
+        'batch_size',
+        'is_batch',
+    ];
+
+    protected $casts = [
+        'is_batch' => 'boolean',
+        'batch_size' => 'integer',
     ];
 
     public function product()
@@ -24,5 +31,24 @@ class Recipe extends Model
     public function item()
     {
         return $this->belongsTo(Item::class);
+    }
+
+    // Get the actual quantity needed per serving
+    public function getQuantityPerServing()
+    {
+        if ($this->is_batch && $this->batch_size > 1) {
+            return $this->quantity / $this->batch_size;
+        }
+        return $this->quantity;
+    }
+
+    // Get servings possible from available stock
+    public function getServingsPossible($stockQuantity)
+    {
+        if ($this->is_batch && $this->batch_size > 1) {
+            $batchesPossible = floor($stockQuantity / $this->quantity);
+            return $batchesPossible * $this->batch_size;
+        }
+        return floor($stockQuantity / $this->quantity);
     }
 }

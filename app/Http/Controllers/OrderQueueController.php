@@ -4,91 +4,255 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Sale;
+use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 
 class OrderQueueController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
-        
-        if ($user->isStaff()) {
-            $orders = Order::with(['sale.branch', 'product'])
-                ->whereHas('sale', function($query) use ($user) {
-                    $query->where('branch_id', $user->branch_id);
-                })
-                ->whereNotIn('status', ['completed', 'cancelled', 'served'])
-                ->orderBy('created_at', 'asc')
-                ->get();
-        } else {
-            $orders = Order::with(['sale.branch', 'product'])
-                ->whereNotIn('status', ['completed', 'cancelled', 'served'])
-                ->orderBy('created_at', 'asc')
-                ->get();
-        }
-        
-        foreach ($orders as $order) {
-            $sale = $order->sale;
-            if ($sale) {
-                if ($sale->customer_id) {
-                    $order->customer_name = $sale->customer->name ?? 'Unknown Member';
-                    $order->customer_type = 'member';
-                } elseif ($sale->walkin_name) {
-                    $order->customer_name = $sale->walkin_name;
-                    $order->customer_type = 'walkin';
-                } else {
-                    $order->customer_name = 'Walk-in';
-                    $order->customer_type = 'walkin';
-                }
-                
-                $order->branch_name = $sale->branch ? str_replace('☕ Brew & Bean Co. - ', '', $sale->branch->name) : 'Unknown';
-            }
-        }
-        
-        return view('barista.queue', compact('orders'));
+        return view('barista.queue');
     }
 
-    public function updateStatus(Request $request, $id)
+    public function getQueueData()
+    {
+        $user = Auth::user();
+        $branchId = $user->branch_id ?? null;
+        
+        // Get all sales with orders for this branch - EXCLUDE completed and cancelled
+        $sales = Sale::with(['customer', 'orders.product', 'branch'])
+            ->whereHas('orders', function($query) {
+                $query->whereNotIn('status', ['completed', 'cancelled']);
+            })
+            ->where('order_status', '!=', 'completed')
+            ->orderBy('created_at', 'asc');
+            
+        if ($branchId) {
+            $sales->where('branch_id', $branchId);
+        }
+        
+        $sales = $sales->get();
+        
+        // Separate in-store and online orders
+        $inStore = [
+            'pending' => [],
+            'preparing' => [],
+            'serve' => []
+        ];
+        
+        $online = [
+            'pending' => [],
+            'preparing' => [],
+            'deliver' => []
+        ];
+        
+        foreach ($sales as $sale) {
+            $isOnline = !empty($sale->delivery_address);
+            
+            foreach ($sale->orders as $order) {
+                $status = $order->status;
+                
+                if ($status === 'completed' || $status === 'cancelled') {
+                    continue;
+                }
+                
+                $category = 'pending';
+                if ($status === 'preparing') $category = 'preparing';
+                if ($status === 'ready') {
+                    $category = $isOnline ? 'deliver' : 'serve';
+                }
+                
+                $orderData = [
+                    'sale_id' => $sale->id,
+                    'order_id' => $order->id,
+                    'customer_name' => $sale->customer->name ?? $sale->walkin_name ?? 'Walk-in',
+                    'total' => $sale->total_amount,
+                    'status' => $status,
+                    'item_count' => $sale->orders->count(),
+                    'time_ago' => $sale->created_at->diffForHumans(),
+                    'type' => $isOnline ? 'online' : 'in-store',
+                    'order_type' => $isOnline ? 'Online' : 'In-Store'
+                ];
+                
+                if ($isOnline) {
+                    $online[$category][] = $orderData;
+                } else {
+                    $inStore[$category][] = $orderData;
+                }
+            }
+        }
+        
+        return response()->json([
+            'in_store' => $inStore,
+            'online' => $online
+        ]);
+    }
+
+    public function show($saleId)
+    {
+        $sale = Sale::with(['customer', 'branch', 'orders.product'])
+            ->findOrFail($saleId);
+            
+        return view('barista.order-details', compact('sale'));
+    }
+
+    public function acceptOrder($saleId)
     {
         try {
-            $status = $request->status;
+            $sale = Sale::findOrFail($saleId);
             
-            // Allowed statuses - use 'served' instead of 'completed'
-            $allowed = ['pending', 'preparing', 'ready', 'served', 'cancelled'];
-            if (!in_array($status, $allowed)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid status: ' . $status
-                ], 400);
+            foreach ($sale->orders as $order) {
+                if ($order->status === 'pending') {
+                    $order->status = 'preparing';
+                    $order->save();
+                }
             }
-
-            $order = Order::find($id);
-            if (!$order) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Order not found'
-                ], 404);
-            }
-
-            $oldStatus = $order->status;
-            $order->status = $status;
-            $order->save();
-
+            
+            $sale->order_status = 'preparing';
+            $sale->save();
+            
+            Log::info('Order accepted', ['sale_id' => $saleId, 'user_id' => Auth::id()]);
+            
             return response()->json([
                 'success' => true,
-                'message' => 'Order status updated from ' . $oldStatus . ' to ' . $status,
-                'status' => $status
+                'message' => 'Order accepted and is now preparing'
             ]);
-
+            
         } catch (\Exception $e) {
-            Log::error('Order status update error: ' . $e->getMessage());
+            Log::error('Order acceptance error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Error accepting order: ' . $e->getMessage()
+            ], 400);
         }
+    }
+
+    public function markReady($saleId)
+    {
+        try {
+            $sale = Sale::findOrFail($saleId);
+            
+            foreach ($sale->orders as $order) {
+                if ($order->status === 'preparing') {
+                    $order->status = 'ready';
+                    $order->save();
+                }
+            }
+            
+            $sale->order_status = 'ready';
+            $sale->save();
+            
+            Log::info('Order marked ready', ['sale_id' => $saleId, 'user_id' => Auth::id()]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Order is ready'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Order ready error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error marking order ready: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function completeOrder($saleId)
+    {
+        try {
+            $sale = Sale::findOrFail($saleId);
+            
+            foreach ($sale->orders as $order) {
+                if ($order->status !== 'completed') {
+                    $order->status = 'completed';
+                    $order->save();
+                }
+            }
+            
+            $sale->order_status = 'completed';
+            $sale->delivery_status = 'completed';
+            $sale->save();
+            
+            Log::info('Order completed', ['sale_id' => $saleId, 'user_id' => Auth::id()]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Order completed successfully',
+                'receipt_url' => route('pos.receipt', $saleId)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Order completion error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error completing order: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function cancelOrder($saleId)
+    {
+        try {
+            $sale = Sale::findOrFail($saleId);
+            
+            foreach ($sale->orders as $order) {
+                if ($order->status !== 'completed' && $order->status !== 'cancelled') {
+                    $order->status = 'cancelled';
+                    $order->save();
+                }
+            }
+            
+            $sale->order_status = 'cancelled';
+            $sale->save();
+            
+            Log::info('Order cancelled', ['sale_id' => $saleId, 'user_id' => Auth::id()]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Order cancelled successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Order cancellation error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error cancelling order: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function getNewOrders()
+    {
+        $user = Auth::user();
+        $branchId = $user->branch_id ?? null;
+        
+        $newOrders = Sale::with(['customer', 'orders'])
+            ->whereHas('orders', function($query) {
+                $query->where('status', 'pending');
+            })
+            ->orderBy('created_at', 'desc');
+            
+        if ($branchId) {
+            $newOrders->where('branch_id', $branchId);
+        }
+        
+        $newOrders = $newOrders->get();
+        
+        return response()->json([
+            'count' => $newOrders->count(),
+            'orders' => $newOrders->map(function($sale) {
+                return [
+                    'id' => $sale->id,
+                    'customer_name' => $sale->customer->name ?? $sale->walkin_name ?? 'Walk-in',
+                    'total' => $sale->total_amount,
+                    'created_at' => $sale->created_at->diffForHumans(),
+                    'items' => $sale->orders->count()
+                ];
+            })
+        ]);
     }
 }

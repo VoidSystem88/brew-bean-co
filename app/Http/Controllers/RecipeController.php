@@ -5,150 +5,117 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Item;
 use App\Models\Recipe;
-use App\Models\Branch;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class RecipeController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
         $recipes = Recipe::with(['product', 'item'])->get();
-        $products = Product::with('recipes.item')->orderBy('name')->get();
-        
-        // Get branch only for staff
-        $branch = null;
-        if ($user->isStaff()) {
-            $branch = $user->branch;
-        }
-        
-        return view('recipes.index', compact('recipes', 'products', 'branch'));
+        return view('recipes.index', compact('recipes'));
     }
 
     public function create()
     {
-        $items = Item::orderBy('name')->get();
         $products = Product::orderBy('name')->get();
-        return view('recipes.create', compact('items', 'products'));
+        $items = Item::orderBy('name')->get();
+        return view('recipes.create', compact('products', 'items'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'product_id' => 'required|exists:products,id',
-            'ingredients' => 'required|array|min:1',
-            'ingredients.*.item_id' => 'required|exists:items,id',
-            'ingredients.*.quantity' => 'required|numeric|min:0.01',
-            'ingredients.*.unit' => 'required|string|max:50',
+            'item_id' => 'required|exists:items,id',
+            'quantity' => 'required|numeric|min:0.01',
+            'unit' => 'required|string|max:20',
+            'batch_size' => 'nullable|integer|min:1',
+            'is_batch' => 'nullable|boolean',
         ]);
 
-        try {
-            DB::beginTransaction();
-
-            $product = Product::find($request->product_id);
-
-            Recipe::where('product_id', $product->id)->delete();
-
-            foreach ($request->ingredients as $ingredient) {
-                Recipe::create([
-                    'product_id' => $product->id,
-                    'item_id' => $ingredient['item_id'],
-                    'quantity' => $ingredient['quantity'],
-                    'unit' => $ingredient['unit'],
-                ]);
-            }
-
-            DB::commit();
-
-            return redirect()->route('recipes.index')
-                ->with('success', '✅ Recipe for "' . $product->name . '" created successfully!');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Recipe creation error: ' . $e->getMessage());
+        if ($validator->fails()) {
             return redirect()->back()
-                ->with('error', 'Error: ' . $e->getMessage())
+                ->withErrors($validator)
                 ->withInput();
         }
-    }
-
-    public function edit($id)
-    {
-        $product = Product::with('recipes.item')->findOrFail($id);
-        $items = Item::orderBy('name')->get();
-        $products = Product::orderBy('name')->get();
-        $recipe = $product->recipes->first();
-        
-        return view('recipes.edit', compact('product', 'items', 'products', 'recipe'));
-    }
-
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'ingredients' => 'required|array|min:1',
-            'ingredients.*.item_id' => 'required|exists:items,id',
-            'ingredients.*.quantity' => 'required|numeric|min:0.01',
-            'ingredients.*.unit' => 'required|string|max:50',
-        ]);
 
         try {
-            DB::beginTransaction();
-
-            $product = Product::findOrFail($request->product_id);
-
-            Recipe::where('product_id', $product->id)->delete();
-
-            foreach ($request->ingredients as $ingredient) {
-                Recipe::create([
-                    'product_id' => $product->id,
-                    'item_id' => $ingredient['item_id'],
-                    'quantity' => $ingredient['quantity'],
-                    'unit' => $ingredient['unit'],
-                ]);
-            }
-
-            DB::commit();
-
-            return redirect()->route('recipes.index')
-                ->with('success', '✅ Recipe for "' . $product->name . '" updated successfully!');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Recipe update error: ' . $e->getMessage());
-            return redirect()->back()
-                ->with('error', 'Error: ' . $e->getMessage())
-                ->withInput();
-        }
-    }
-
-    public function show($id)
-    {
-        $product = Product::with('recipes.item')->findOrFail($id);
-        return view('recipes.show', compact('product'));
-    }
-
-    public function destroy($id)
-    {
-        try {
-            $product = Product::findOrFail($id);
-            $productName = $product->name;
-
-            Recipe::where('product_id', $product->id)->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => '✅ Recipe for "' . $productName . '" deleted successfully!'
+            $recipe = Recipe::create([
+                'product_id' => $request->product_id,
+                'item_id' => $request->item_id,
+                'quantity' => $request->quantity,
+                'unit' => $request->unit,
+                'batch_size' => $request->batch_size ?? 1,
+                'is_batch' => $request->is_batch ?? false,
             ]);
 
+            return redirect()->route('recipes.index')
+                ->with('success', 'Recipe added successfully!');
+
         } catch (\Exception $e) {
-            Log::error('Recipe deletion error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Error adding recipe: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
+    public function edit(Recipe $recipe)
+    {
+        $products = Product::orderBy('name')->get();
+        $items = Item::orderBy('name')->get();
+        return view('recipes.edit', compact('recipe', 'products', 'items'));
+    }
+
+    public function update(Request $request, Recipe $recipe)
+    {
+        $validator = Validator::make($request->all(), [
+            'product_id' => 'required|exists:products,id',
+            'item_id' => 'required|exists:items,id',
+            'quantity' => 'required|numeric|min:0.01',
+            'unit' => 'required|string|max:20',
+            'batch_size' => 'nullable|integer|min:1',
+            'is_batch' => 'nullable|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        try {
+            $recipe->update([
+                'product_id' => $request->product_id,
+                'item_id' => $request->item_id,
+                'quantity' => $request->quantity,
+                'unit' => $request->unit,
+                'batch_size' => $request->batch_size ?? 1,
+                'is_batch' => $request->is_batch ?? false,
+            ]);
+
+            return redirect()->route('recipes.index')
+                ->with('success', 'Recipe updated successfully!');
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error updating recipe: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
+    public function destroy(Recipe $recipe)
+    {
+        try {
+            $recipe->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'Recipe deleted successfully!'
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => 'Error deleting recipe: ' . $e->getMessage()
             ], 400);
         }
     }

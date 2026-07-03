@@ -2,127 +2,75 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Branch;
-use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Order;
+use App\Models\Customer;
+use App\Models\Branch;
 use App\Models\Item;
 use App\Helpers\UnitConverter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PosController extends Controller
 {
     public function index()
-    {
-        $user = Auth::user();
-        
-        if ($user->isAdmin() || $user->isManager()) {
-            $branches = Branch::where('is_active', true)->get();
-            $branchId = request('branch_id', $branches->first()->id ?? null);
-        } else {
-            $branches = collect([$user->branch]);
-            $branchId = $user->branch_id;
-        }
+{
+    $products = Product::with('recipes.item')->orderBy('name')->get();
+    $customers = Customer::orderBy('name')->get();
+    $branches = Branch::where('is_active', true)->get();
 
-        $products = Product::with(['recipes.item'])->get();
-        
-        $products = $products->map(function($product) use ($branchId) {
-            $canMake = true;
-            $stockInfo = [];
-            
-            if ($product->recipes->isEmpty()) {
-                $canMake = false;
-            } else {
-                foreach ($product->recipes as $recipe) {
-                    $stock = DB::table('branch_item')
-                        ->where('branch_id', $branchId)
-                        ->where('item_id', $recipe->item_id)
-                        ->value('stock_quantity') ?? 0;
-                    
-                    $needed = $recipe->quantity;
-                    $stockUnit = $recipe->item->unit ?? 'pcs';
-                    $recipeUnit = $recipe->unit;
-                    $itemName = $recipe->item->name ?? 'Unknown';
-                    $itemId = $recipe->item_id;
-                    
-                    $stockInRecipeUnit = UnitConverter::convert(
-                        $stock,
-                        $stockUnit,
-                        $recipeUnit,
-                        $itemName,
-                        $itemId
-                    );
-                    
-                    $available = $stockInRecipeUnit >= $needed;
-                    
-                    $stockInfo[] = [
-                        'item_id' => $recipe->item_id,
-                        'item_name' => $itemName,
-                        'stock' => $stock,
-                        'stock_unit' => $stockUnit,
-                        'stock_in_recipe_unit' => $stockInRecipeUnit,
-                        'needed' => $needed,
-                        'needed_unit' => $recipeUnit,
-                        'available' => $available
-                    ];
-                    
-                    if (!$available) {
-                        $canMake = false;
-                    }
-                }
-            }
-            
-            $product->can_make = $canMake;
-            $product->stock_info = $stockInfo;
-            return $product;
-        });
-        
-        $customers = Customer::all();
-        $offlineMode = session('offline_mode', false);
+    // Gamitin ang assigned branch ng naka-login na staff, hindi basta ang unang branch sa listahan.
+    // Mag-fallback lang sa first branch kung walang branch_id ang user (hal. admin).
+    $currentBranchId = Auth::user()->branch_id ?? $branches->first()->id ?? null;
 
-        return view('pos.index', compact('branches', 'products', 'customers', 'offlineMode', 'branchId'));
-    }
+    return view('pos.index', compact('products', 'customers', 'branches', 'currentBranchId'));
+}
 
     public function processSale(Request $request)
     {
-        $request->validate([
-            'branch_id' => 'required|exists:branches,id',
-            'customer_id' => 'nullable|exists:customers,id',
-            'walkin_name' => 'nullable|string|max:255',
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-        ]);
-
-        $user = Auth::user();
-        $branchId = $request->branch_id;
-
-        if (!$user->isAdmin() && $user->branch_id != $branchId) {
-            return response()->json(['error' => 'Unauthorized branch access.'], 403);
-        }
-
-        $offlineMode = session('offline_mode', false);
-
         try {
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+                'items' => 'required|array|min:1',
+                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.quantity' => 'required|integer|min:1',
+                'items.*.price' => 'required|numeric|min:0',
+                'customer_id' => 'nullable|exists:customers,id',
+                'walkin_name' => 'nullable|string|max:255',
+                'branch_id' => 'required|exists:branches,id',
+                'payment_method' => 'required|in:cash,card,gcash',
+                'amount_paid' => 'required|numeric|min:0',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
             DB::beginTransaction();
 
+            $branchId = $request->branch_id;
             $totalAmount = 0;
             $orderItems = [];
-            $ingredientsToDeduct = [];
+            $ingredientsUsed = [];
 
-            // FIRST PASS: Check all stocks first (no deductions yet)
             foreach ($request->items as $item) {
                 $product = Product::with('recipes.item')->find($item['product_id']);
                 
-                if ($product->recipes->isEmpty()) {
-                    throw new \Exception('Product "' . $product->name . '" has no recipe.');
+                if (!$product) {
+                    throw new \Exception('Product not found: ' . $item['product_id']);
                 }
 
-                // Check each ingredient
+                if ($product->recipes->isEmpty()) {
+                    throw new \Exception('Product "' . $product->name . '" has no recipe defined.');
+                }
+
                 foreach ($product->recipes as $recipe) {
                     $itemId = $recipe->item_id;
                     $recipeQty = $recipe->quantity;
@@ -132,20 +80,16 @@ class PosController extends Controller
                     $itemModel = Item::find($itemId);
                     $stockUnit = $itemModel->unit ?? 'g';
                     $itemName = $itemModel->name ?? 'Unknown';
-                    $weightPerUnit = $itemModel->weight_per_unit ?? null;
                     
                     $neededInRecipeUnit = $recipeQty * $quantityOrdered;
                     
-                    // Get current branch stock BEFORE deduction
                     $branchStock = DB::table('branch_item')
                         ->where('branch_id', $branchId)
                         ->where('item_id', $itemId)
-                        ->lockForUpdate()
                         ->first();
 
                     $availableStock = $branchStock->stock_quantity ?? 0;
                     
-                    // Convert available stock to recipe unit for comparison
                     $availableInRecipeUnit = UnitConverter::convert(
                         $availableStock,
                         $stockUnit,
@@ -154,20 +98,14 @@ class PosController extends Controller
                         $itemId
                     );
 
-                    // Check if enough stock (in recipe unit)
                     if ($availableInRecipeUnit < $neededInRecipeUnit) {
-                        $errorMsg = 'Insufficient stock for "' . $itemName . '". ';
-                        $errorMsg .= 'Need: ' . number_format($neededInRecipeUnit, 2) . ' ' . $recipeUnit;
-                        $errorMsg .= ', Available: ' . number_format($availableInRecipeUnit, 2) . ' ' . $recipeUnit;
-                        
-                        if ($weightPerUnit && $stockUnit !== $recipeUnit) {
-                            $errorMsg .= ' (1 ' . $stockUnit . ' = ' . number_format($weightPerUnit) . 'g)';
-                        }
-                        
-                        throw new \Exception($errorMsg);
+                        throw new \Exception(
+                            'Insufficient stock for "' . $itemName . '". ' .
+                            'Need: ' . number_format($neededInRecipeUnit, 2) . ' ' . $recipeUnit . 
+                            ', Available: ' . number_format($availableInRecipeUnit, 2) . ' ' . $recipeUnit
+                        );
                     }
 
-                    // Calculate needed in stock unit for deduction
                     $neededInStockUnit = UnitConverter::convert(
                         $neededInRecipeUnit,
                         $recipeUnit,
@@ -176,65 +114,54 @@ class PosController extends Controller
                         $itemId
                     );
 
-                    // Track ingredients to deduct
-                    if (!isset($ingredientsToDeduct[$itemId])) {
-                        $ingredientsToDeduct[$itemId] = 0;
+                    if (!isset($ingredientsUsed[$itemId])) {
+                        $ingredientsUsed[$itemId] = 0;
                     }
-                    $ingredientsToDeduct[$itemId] += $neededInStockUnit;
+                    $ingredientsUsed[$itemId] += $neededInStockUnit;
                 }
 
-                $subtotal = $product->price * $item['quantity'];
+                $subtotal = $item['price'] * $item['quantity'];
                 $totalAmount += $subtotal;
 
                 $orderItems[] = [
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
-                    'unit_price' => $product->price,
+                    'unit_price' => $item['price'],
                     'subtotal' => $subtotal,
                 ];
             }
 
-            // SECOND PASS: Now deduct all ingredients
-            foreach ($ingredientsToDeduct as $itemId => $totalQty) {
-                // Check again before deducting (double check)
-                $currentStock = DB::table('branch_item')
-                    ->where('branch_id', $branchId)
-                    ->where('item_id', $itemId)
-                    ->lockForUpdate()
-                    ->first();
+            $amountPaid = $request->amount_paid;
+            $change = $amountPaid - $totalAmount;
 
-                if (!$currentStock || $currentStock->stock_quantity < $totalQty) {
-                    $itemName = Item::find($itemId)->name ?? 'Unknown';
-                    throw new \Exception('Stock changed for "' . $itemName . '". Please try again.');
-                }
+            // Create Sale with status 'pending'
+            $sale = Sale::create([
+                'branch_id' => $branchId,
+                'user_id' => Auth::id(),
+                'customer_id' => $request->customer_id,
+                'walkin_name' => $request->walkin_name,
+                'total_amount' => $totalAmount,
+                'original_amount' => $totalAmount,
+                'discount_amount' => 0,
+                'discount_rate' => 0,
+                'sale_date' => now(),
+                'sync_status' => 'synced',
+                'payment_method' => $request->payment_method,
+                'amount_paid' => $amountPaid,
+                'change_amount' => $change,
+                'order_status' => 'pending',
+                'delivery_status' => 'pending',
+            ]);
 
-                // Deduct
-                $newStock = $currentStock->stock_quantity - $totalQty;
-                
-                // Ensure we never go negative
-                if ($newStock < 0) {
-                    $itemName = Item::find($itemId)->name ?? 'Unknown';
-                    throw new \Exception('Cannot deduct more than available stock for "' . $itemName . '".');
-                }
-
+            // Deduct ingredients
+            foreach ($ingredientsUsed as $itemId => $totalQty) {
                 DB::table('branch_item')
                     ->where('branch_id', $branchId)
                     ->where('item_id', $itemId)
-                    ->update(['stock_quantity' => $newStock]);
+                    ->decrement('stock_quantity', $totalQty);
             }
 
-            // Create Sale with proper sync_status based on offline mode
-            $sale = Sale::create([
-                'branch_id' => $branchId,
-                'user_id' => $user->id,
-                'customer_id' => $request->customer_id,
-                'walkin_name' => $request->walkin_name ?? null,
-                'total_amount' => $totalAmount,
-                'sale_date' => now(),
-                'sync_status' => $offlineMode ? 'pending' : 'synced',
-            ]);
-
-            // Create Sale Items and Orders
+            // Create Sale Items and Orders with status 'pending'
             foreach ($orderItems as $item) {
                 SaleItem::create([
                     'sale_id' => $sale->id,
@@ -249,27 +176,61 @@ class PosController extends Controller
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
                     'status' => 'pending',
-                    'notes' => $request->notes ?? ($offlineMode ? '📡 OFFLINE ORDER' : null),
+                    'notes' => null,
                 ]);
+            }
+
+            // Add loyalty points if customer
+            if ($request->customer_id) {
+                $customer = Customer::find($request->customer_id);
+                $pointsEarned = floor($totalAmount / 100);
+                $customer->loyalty_points += $pointsEarned;
+                $customer->save();
             }
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
+                'message' => 'Order created successfully! Order is now in queue.',
                 'sale_id' => $sale->id,
                 'total' => $totalAmount,
-                'offline' => $offlineMode,
-                'message' => $offlineMode 
-                    ? '✅ Order saved offline! Will sync when online.' 
-                    : '✅ Order placed successfully!',
-                'sync_status' => $sale->sync_status,
+                'change' => $change,
+                'queue_url' => route('barista.queue')
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 400);
+            Log::error('POS sale error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
         }
+    }
+
+    public function receipt($saleId)
+    {
+        $sale = Sale::with(['items.product', 'customer', 'branch', 'user'])
+            ->where('order_status', 'completed')
+            ->findOrFail($saleId);
+            
+        return view('pos.receipt', compact('sale'));
+    }
+
+    public function regenerateReceipt($saleId)
+    {
+        $sale = Sale::with(['items.product', 'customer', 'branch', 'user'])
+            ->where('order_status', 'completed')
+            ->findOrFail($saleId);
+            
+        Log::info('Receipt regenerated', [
+            'sale_id' => $saleId,
+            'regenerated_by' => Auth::id(),
+            'regenerated_at' => now()
+        ]);
+            
+        return view('pos.receipt', compact('sale'));
     }
 
     public function getProductStock(Request $request)
@@ -277,73 +238,72 @@ class PosController extends Controller
         $productId = $request->product_id;
         $branchId = $request->branch_id;
         
-        if (!$branchId) {
-            $user = Auth::user();
-            $branchId = $user->branch_id;
-        }
-        
         $product = Product::with('recipes.item')->find($productId);
         
-        if (!$product) {
-            return response()->json(['error' => 'Product not found'], 404);
+        if (!$product || $product->recipes->isEmpty()) {
+            return response()->json([
+                'available' => false,
+                'message' => 'Product not available'
+            ]);
         }
-        
-        $stockInfo = [];
-        $canMake = true;
+
+        $minStock = PHP_INT_MAX;
+        $stockDetails = [];
         
         foreach ($product->recipes as $recipe) {
-            $itemModel = Item::find($recipe->item_id);
-            $stockUnit = $itemModel->unit ?? 'g';
-            $itemName = $itemModel->name ?? 'Unknown';
-            $itemId = $recipe->item_id;
-            $weightPerUnit = $itemModel->weight_per_unit ?? null;
-            
-            $stock = DB::table('branch_item')
+            $branchStock = DB::table('branch_item')
                 ->where('branch_id', $branchId)
-                ->where('item_id', $itemId)
-                ->value('stock_quantity') ?? 0;
-            
+                ->where('item_id', $recipe->item_id)
+                ->first();
+
+            $stockQty = $branchStock->stock_quantity ?? 0;
             $needed = $recipe->quantity;
-            $neededUnit = $recipe->unit;
+            $itemName = $recipe->item->name ?? 'Unknown';
             
-            $stockInRecipeUnit = UnitConverter::convert(
-                $stock,
-                $stockUnit,
-                $neededUnit,
+            $availableInRecipeUnit = UnitConverter::convert(
+                $stockQty,
+                $recipe->item->unit ?? 'g',
+                $recipe->unit,
                 $itemName,
-                $itemId
+                $recipe->item_id
             );
             
-            $available = $stockInRecipeUnit >= $needed;
+            $servingsAvailable = floor($availableInRecipeUnit / $needed);
             
-            $stockInfo[] = [
-                'item_name' => $itemName,
-                'stock' => $stock,
-                'stock_unit' => $stockUnit,
-                'stock_in_recipe_unit' => $stockInRecipeUnit,
-                'needed' => $needed,
-                'needed_unit' => $neededUnit,
-                'weight_per_unit' => $weightPerUnit,
-                'available' => $available
-            ];
-            
-            if (!$available) {
-                $canMake = false;
+            if ($servingsAvailable < $minStock) {
+                $minStock = $servingsAvailable;
             }
+            
+            $stockDetails[] = [
+                'item' => $itemName,
+                'available' => $stockQty,
+                'needed' => $needed,
+                'servings_available' => $servingsAvailable,
+                'sufficient' => $availableInRecipeUnit >= $needed
+            ];
         }
-        
+
         return response()->json([
-            'product' => $product,
-            'can_make' => $canMake,
-            'stock_info' => $stockInfo
+            'available' => $minStock > 0,
+            'max_quantity' => $minStock > 0 ? $minStock : 0,
+            'details' => $stockDetails
         ]);
     }
 
-    public function receipt($saleId)
+    public function searchCustomer(Request $request)
     {
-        $sale = Sale::with(['items.product', 'branch', 'user', 'customer'])
-            ->findOrFail($saleId);
+        $query = $request->get('q');
         
-        return view('pos.receipt', compact('sale'));
+        if (empty($query) || strlen($query) < 2) {
+            return response()->json([]);
+        }
+        
+        $customers = Customer::where('name', 'LIKE', "%{$query}%")
+            ->orWhere('email', 'LIKE', "%{$query}%")
+            ->orWhere('customer_code', 'LIKE', "%{$query}%")
+            ->limit(10)
+            ->get(['id', 'name', 'email', 'customer_code', 'loyalty_points']);
+        
+        return response()->json($customers);
     }
 }

@@ -6,162 +6,325 @@
 <style>
     .settings-card {
         background: white;
-        border-radius: 16px;
-        padding: 30px;
+        border-radius: 12px;
         border: 1px solid #e8e8e8;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        transition: transform 0.2s;
-        margin-bottom: 16px;
+        padding: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        margin-bottom: 20px;
+    }
+    
+    .logo-preview {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 3px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+        overflow: hidden;
+        background: #f8f6f4;
+        transition: 0.3s;
+        position: relative;
+    }
+    .logo-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .logo-preview .placeholder {
+        color: #ccc;
         text-align: center;
+        font-size: 14px;
     }
-    .settings-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    }
-    .settings-card .icon {
-        font-size: 48px;
+    .logo-preview .placeholder i {
+        font-size: 40px;
         display: block;
-        margin-bottom: 12px;
+        margin-bottom: 5px;
     }
-    .settings-card .title {
-        font-size: 18px;
-        font-weight: 600;
-        color: #333;
+    .logo-preview:hover .overlay {
+        opacity: 1;
     }
-    .settings-card .desc {
+    .logo-preview .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        opacity: 0;
+        transition: 0.3s;
+        cursor: pointer;
+        border-radius: 50%;
+    }
+    .logo-preview .overlay i {
+        font-size: 24px;
+    }
+    
+    .upload-area {
+        border: 2px dashed #ddd;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.3s;
+        background: #fafafa;
+    }
+    .upload-area:hover {
+        border-color: #6F4E37;
+        background: #f8f6f4;
+    }
+    .upload-area i {
+        font-size: 36px;
+        color: #ccc;
+        display: block;
+        margin-bottom: 8px;
+    }
+    .upload-area .file-info {
+        font-size: 12px;
         color: #999;
+    }
+    .upload-area .file-info .max-size {
+        color: #6F4E37;
+        font-weight: 600;
+    }
+    
+    .logo-info {
+        font-size: 12px;
+        color: #999;
+        text-align: center;
+        margin-top: 6px;
+    }
+    .logo-info .size {
+        color: #6F4E37;
+        font-weight: 600;
+    }
+    
+    .brand-input {
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        padding: 10px 14px;
+        width: 100%;
+        font-size: 14px;
+        transition: 0.3s;
+    }
+    .brand-input:focus {
+        border-color: #6F4E37;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(111, 78, 55, 0.1);
+    }
+    
+    .preview-box {
+        background: #2d1f14;
+        color: #e8e0d8;
+        padding: 12px 16px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 10px;
+    }
+    .preview-box .preview-logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: #f8f6f4;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .preview-box .preview-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .preview-box .preview-logo .placeholder {
+        color: #999;
+        font-size: 14px;
+    }
+    .preview-box .preview-text {
+        flex: 1;
+    }
+    .preview-box .preview-text .name {
+        font-weight: 700;
+        font-size: 15px;
+        color: white;
+    }
+    .preview-box .preview-text .tagline {
+        font-size: 11px;
+        color: #999;
+    }
+    
+    .crop-modal .modal-dialog {
+        max-width: 700px;
+    }
+    .crop-modal .modal-body {
+        padding: 20px;
+    }
+    .crop-container {
+        width: 100%;
+        height: 450px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+    }
+    .crop-container img {
+        max-width: 100%;
+        display: block;
+    }
+    
+    .cropper-container {
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    .crop-instructions {
         font-size: 13px;
-        margin: 4px 0 16px;
+        color: #666;
+        margin-bottom: 12px;
+        padding: 10px 14px;
+        background: #f8f6f4;
+        border-radius: 6px;
+        border-left: 3px solid #6F4E37;
     }
-    .btn-install {
-        background: #6F4E37;
-        color: white;
-        border: none;
-        padding: 10px 40px;
-        border-radius: 40px;
-        font-weight: 600;
-        font-size: 14px;
+    .crop-instructions i {
+        color: #6F4E37;
+        margin-right: 6px;
     }
-    .btn-install:hover {
-        background: #5d3e2a;
-        color: white;
-    }
-    .btn-install:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-    .badge-installed {
-        background: #d4edda;
-        color: #155724;
-        padding: 8px 20px;
-        border-radius: 40px;
-        font-weight: 600;
-        display: inline-block;
-    }
-    .btn-backup {
-        background: #28a745;
-        color: white;
-        border: none;
-        padding: 10px 40px;
-        border-radius: 40px;
-        font-weight: 600;
-        font-size: 14px;
-    }
-    .btn-backup:hover {
-        background: #218838;
-        color: white;
+    
+    @media (max-width: 576px) {
+        .logo-preview {
+            width: 100px;
+            height: 100px;
+        }
+        .crop-modal .modal-dialog {
+            max-width: 100%;
+            margin: 10px;
+        }
+        .crop-container {
+            height: 300px;
+        }
+        .preview-box {
+            flex-direction: column;
+            text-align: center;
+        }
     }
 </style>
 
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <h2><i class="fas fa-cog me-2"></i>Settings</h2>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert" style="white-space: pre-line;">
-            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <!-- Brand Settings -->
+    <div class="settings-card">
+        <h5 class="mb-3"><i class="fas fa-font me-2" style="color:#6F4E37;"></i>Brand Information</h5>
+        <p class="text-muted" style="font-size:13px;">Customize your store name and tagline that appears in the sidebar.</p>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Brand Name</label>
+                <input type="text" class="brand-input" id="brandName" value="{{ $settings['brand_name'] }}" placeholder="Enter brand name">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Tagline</label>
+                <input type="text" class="brand-input" id="brandTagline" value="{{ $settings['brand_tagline'] }}" placeholder="Enter tagline">
+            </div>
         </div>
-    @endif
-
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        
+        <div class="mt-3">
+            <button class="btn btn-primary" onclick="updateBrand()">
+                <i class="fas fa-save me-2"></i> Save Brand
+            </button>
+            <span id="brandMessage" class="ms-2" style="font-size:14px;"></span>
         </div>
-    @endif
+        
+        <!-- Live Preview -->
+        <div class="preview-box mt-3">
+            <div class="preview-logo">
+                @php
+                    $logoPath = Storage::disk('public')->exists('settings/logo.png') 
+                        ? asset('storage/settings/logo.png') 
+                        : null;
+                @endphp
+                @if($logoPath)
+                    <img src="{{ $logoPath }}" alt="Logo" id="previewSidebarLogo">
+                @else
+                    <div class="placeholder"><i class="fas fa-store"></i></div>
+                @endif
+            </div>
+            <div class="preview-text">
+                <div class="name" id="previewBrandName">{{ $settings['brand_name'] }}</div>
+                <div class="tagline" id="previewBrandTagline">{{ $settings['brand_tagline'] }}</div>
+            </div>
+        </div>
+    </div>
 
-    <div class="row g-3">
-        <!-- Install App -->
-        <div class="col-md-6">
-            <div class="settings-card" style="border: 2px solid #C9A96E;">
-                <span class="icon">📱</span>
-                <div class="title">Install App</div>
-                <div class="desc">Add Brew & Bean Co. to your phone home screen</div>
-                <button id="installPWA" class="btn-install">
-                    <i class="fas fa-download me-2"></i> Install App
-                </button>
-                <div id="installStatus" style="display:none; margin-top: 8px;">
-                    <span class="badge-installed">✅ App is installed</span>
+    <!-- Logo Settings -->
+    <div class="settings-card">
+        <h5 class="mb-3"><i class="fas fa-image me-2" style="color:#6F4E37;"></i>Logo</h5>
+        <p class="text-muted" style="font-size:13px;">Upload your store logo. It will appear in the sidebar.</p>
+        
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center">
+                <div class="logo-preview" id="logoPreview" onclick="document.getElementById('logoInput').click()">
+                    <div class="placeholder" id="logoPlaceholder">
+                        <i class="fas fa-store"></i>
+                        <span>No Logo</span>
+                    </div>
+                    <div class="overlay">
+                        <i class="fas fa-camera"></i>
+                    </div>
                 </div>
+                <div class="logo-info" id="logoInfo"></div>
+                <button class="btn btn-danger btn-sm mt-2" onclick="removeLogo()" id="removeLogoBtn" style="display:none;">
+                    <i class="fas fa-trash"></i> Remove Logo
+                </button>
+            </div>
+            <div class="col-md-9">
+                <div class="upload-area" onclick="document.getElementById('logoInput').click()">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click to upload logo</p>
+                    <div class="file-info">
+                        <span class="max-size">Max 5MB</span> • PNG, JPG, GIF, WebP, SVG
+                    </div>
+                </div>
+                <input type="file" id="logoInput" accept="image/*" style="display:none;">
             </div>
         </div>
-
-        <!-- Backup Database -->
-        <div class="col-md-6">
-            <div class="settings-card" style="border: 2px solid #28a745;">
-                <span class="icon">💾</span>
-                <div class="title">Backup Database</div>
-                <div class="desc">Export all data as JSON backup file</div>
-                <a href="{{ route('admin.export.backup') }}" class="btn-backup">
-                    <i class="fas fa-download me-2"></i> Download Backup
-                </a>
-            </div>
-        </div>
-
-        <!-- Database Management Link -->
-        <div class="col-md-12">
-            <div class="settings-card" style="border: 2px solid #6F4E37;">
-                <span class="icon">🗄️</span>
-                <div class="title">Database Management</div>
-                <div class="desc">Import products, items, and restore from backup</div>
-                <a href="{{ route('admin.database') }}" class="btn-install" style="background: #6F4E37;">
-                    <i class="fas fa-arrow-right me-2"></i> Go to Database Management
-                </a>
-            </div>
-        </div>
-
-        <!-- Stats Summary -->
-        <div class="col-md-12">
-            <div class="settings-card">
-                <span class="icon">📊</span>
-                <div class="title">System Stats</div>
-                <div class="desc">Current database summary</div>
-                <div class="row g-2 mt-2">
-                    <div class="col-3">
-                        <div style="background: #f8f9fa; padding: 10px; border-radius: 8px;">
-                            <div style="font-size:20px;font-weight:700;color:#6F4E37;">{{ $stats['products'] }}</div>
-                            <div style="font-size:12px;color:#999;">Products</div>
+        
+        <!-- Crop Modal -->
+        <div class="modal fade crop-modal" id="cropModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-crop-alt me-2" style="color:#6F4E37;"></i>Crop Logo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="crop-instructions">
+                            <i class="fas fa-info-circle"></i>
+                            Drag the corners or edges to select the area you want to keep. 
+                            The logo will be cropped to a square (1:1 ratio).
+                        </div>
+                        <div class="crop-container">
+                            <img id="cropImage" src="" alt="Crop preview">
                         </div>
                     </div>
-                    <div class="col-3">
-                        <div style="background: #f8f9fa; padding: 10px; border-radius: 8px;">
-                            <div style="font-size:20px;font-weight:700;color:#6F4E37;">{{ $stats['items'] }}</div>
-                            <div style="font-size:12px;color:#999;">Ingredients</div>
-                        </div>
-                    </div>
-                    <div class="col-3">
-                        <div style="background: #f8f9fa; padding: 10px; border-radius: 8px;">
-                            <div style="font-size:20px;font-weight:700;color:#6F4E37;">{{ $stats['branches'] }}</div>
-                            <div style="font-size:12px;color:#999;">Branches</div>
-                        </div>
-                    </div>
-                    <div class="col-3">
-                        <div style="background: #f8f9fa; padding: 10px; border-radius: 8px;">
-                            <div style="font-size:20px;font-weight:700;color:#6F4E37;">{{ $stats['suppliers'] }}</div>
-                            <div style="font-size:12px;color:#999;">Suppliers</div>
-                        </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="btn btn-primary" onclick="saveCroppedLogo()" id="saveCropBtn">
+                            <i class="fas fa-check"></i> Save Logo
+                        </button>
                     </div>
                 </div>
             </div>
@@ -170,50 +333,257 @@
 </div>
 
 @push('scripts')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+
 <script>
-    // PWA Install
-    let deferredPrompt;
-    
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        const btn = document.getElementById('installPWA');
-        btn.style.display = 'inline-block';
-        btn.innerHTML = '<i class="fas fa-download me-2"></i> Install App';
-    });
-    
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-        document.getElementById('installPWA').style.display = 'none';
-        document.getElementById('installStatus').style.display = 'block';
-    }
-    
-    document.getElementById('installPWA').addEventListener('click', async function() {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const result = await deferredPrompt.userChoice;
-            
-            if (result.outcome === 'accepted') {
-                this.innerHTML = '<i class="fas fa-check me-2"></i> Installed!';
-                this.disabled = true;
-                this.style.background = '#28a745';
-                document.getElementById('installStatus').style.display = 'block';
-                alert('✅ Brew & Bean Co. installed on your device!');
-            } else {
-                alert('❌ Installation cancelled.');
-            }
-            deferredPrompt = null;
-        } else {
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            const isAndroid = /Android/.test(navigator.userAgent);
-            
-            if (isIOS) {
-                alert('📱 On iPhone:\n\n1. Tap Share button\n2. Tap "Add to Home Screen"\n3. Tap "Add"');
-            } else if (isAndroid) {
-                alert('📱 On Android:\n\n1. Tap Chrome menu (⋮)\n2. Tap "Add to Home Screen"\n3. Tap "Add"');
-            } else {
-                alert('📱 Open this page on your mobile browser and click Install again.');
-            }
+    let cropper = null;
+    let selectedFile = null;
+
+    // ===== BRAND FUNCTIONS =====
+    function updateBrand() {
+        const name = document.getElementById('brandName').value.trim();
+        const tagline = document.getElementById('brandTagline').value.trim();
+        const msg = document.getElementById('brandMessage');
+        
+        if (!name) {
+            msg.innerHTML = '<span style="color:#dc3545;">❌ Brand name is required</span>';
+            return;
         }
+        
+        const btn = document.querySelector('.btn-primary');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Saving...';
+        
+        fetch('{{ route("admin.settings.brand") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                brand_name: name,
+                brand_tagline: tagline
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-2"></i> Save Brand';
+            
+            if (data.success) {
+                // Update preview
+                document.getElementById('previewBrandName').textContent = data.brand_name;
+                document.getElementById('previewBrandTagline').textContent = data.brand_tagline || '';
+                
+                // Update sidebar (reload page to update sidebar)
+                msg.innerHTML = '<span style="color:#28a745;">✅ ' + data.message + '</span>';
+                
+                // Reload after 1 second to update sidebar
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                msg.innerHTML = '<span style="color:#dc3545;">❌ ' + data.message + '</span>';
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-2"></i> Save Brand';
+            msg.innerHTML = '<span style="color:#dc3545;">❌ Error saving brand</span>';
+        });
+    }
+
+    // ===== LOGO FUNCTIONS =====
+    function loadLogo() {
+        fetch('/admin/settings/logo')
+            .then(response => response.json())
+            .then(data => {
+                if (data.exists) {
+                    const preview = document.getElementById('logoPreview');
+                    preview.innerHTML = `<img src="${data.path}?_=${Date.now()}" alt="Logo">`;
+                    document.getElementById('removeLogoBtn').style.display = 'inline-block';
+                    document.getElementById('logoInfo').innerHTML = `
+                        <i class="fas fa-check-circle" style="color:#28a745;"></i>
+                        <span class="size">${data.size || ''}</span>
+                    `;
+                }
+            })
+            .catch(() => {});
+    }
+
+    document.getElementById('logoInput').addEventListener('change', function(e) {
+        const file = this.files[0];
+        if (!file) return;
+
+        const maxSize = 5 * 1024 * 1024;
+        if (file.size > maxSize) {
+            alert('File is too large. Maximum size is 5MB.');
+            this.value = '';
+            return;
+        }
+
+        const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+        if (!validTypes.includes(file.type)) {
+            alert('Please upload a valid image file.');
+            this.value = '';
+            return;
+        }
+
+        selectedFile = file;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.getElementById('cropImage');
+            img.src = e.target.result;
+            
+            const modal = new bootstrap.Modal(document.getElementById('cropModal'));
+            modal.show();
+            
+            setTimeout(() => {
+                if (cropper) cropper.destroy();
+                
+                img.onload = function() {
+                    cropper = new Cropper(img, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 0.8,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: true,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                        background: false,
+                        responsive: true,
+                        checkOrientation: false,
+                        minCropBoxWidth: 50,
+                        minCropBoxHeight: 50,
+                    });
+                };
+                
+                if (img.complete) {
+                    img.onload();
+                }
+            }, 300);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    window.saveCroppedLogo = function() {
+        if (!cropper || !selectedFile) {
+            alert('Please select an image first.');
+            return;
+        }
+
+        const cropData = cropper.getData();
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('cropModal'));
+        modal.hide();
+
+        const formData = new FormData();
+        formData.append('logo', selectedFile);
+        formData.append('crop_data', JSON.stringify({
+            x: cropData.x,
+            y: cropData.y,
+            width: cropData.width,
+            height: cropData.height
+        }));
+
+        const btn = document.getElementById('saveCropBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Uploading...';
+
+        fetch('{{ route("admin.settings.logo") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Save Logo';
+
+            if (data.success) {
+                const preview = document.getElementById('logoPreview');
+                preview.innerHTML = `<img src="${data.path}?_=${Date.now()}" alt="Logo">`;
+                document.getElementById('removeLogoBtn').style.display = 'inline-block';
+                document.getElementById('logoInfo').innerHTML = `
+                    <i class="fas fa-check-circle" style="color:#28a745;"></i>
+                    <span class="size">${data.size || ''}</span>
+                `;
+                document.getElementById('logoInput').value = '';
+                
+                // Update sidebar preview
+                const sidebarLogo = document.querySelector('.preview-logo');
+                if (sidebarLogo) {
+                    sidebarLogo.innerHTML = `<img src="${data.path}?_=${Date.now()}" alt="Logo">`;
+                }
+                
+                alert('✅ ' + data.message);
+            } else {
+                alert('❌ ' + data.message);
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Save Logo';
+            alert('Error uploading logo: ' + error);
+        });
+    };
+
+    window.removeLogo = function() {
+        if (!confirm('Remove the current logo?')) return;
+
+        fetch('{{ route("admin.settings.logo.remove") }}', {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const preview = document.getElementById('logoPreview');
+                preview.innerHTML = `
+                    <div class="placeholder">
+                        <i class="fas fa-store"></i>
+                        <span>No Logo</span>
+                    </div>
+                `;
+                document.getElementById('removeLogoBtn').style.display = 'none';
+                document.getElementById('logoInfo').innerHTML = '';
+                
+                // Update sidebar preview
+                const sidebarLogo = document.querySelector('.preview-logo');
+                if (sidebarLogo) {
+                    sidebarLogo.innerHTML = `<div class="placeholder"><i class="fas fa-store"></i></div>`;
+                }
+                
+                alert('✅ ' + data.message);
+            } else {
+                alert('❌ ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error removing logo: ' + error);
+        });
+    };
+
+    document.getElementById('cropModal').addEventListener('hidden.bs.modal', function() {
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+    });
+
+    // ===== INIT =====
+    document.addEventListener('DOMContentLoaded', function() {
+        loadLogo();
     });
 </script>
 @endpush

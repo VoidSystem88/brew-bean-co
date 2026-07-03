@@ -8,11 +8,14 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Order;
 use App\Models\Branch;
+use App\Models\Item;
+use App\Helpers\UnitConverter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CustomerAuthController extends Controller
 {
@@ -100,7 +103,7 @@ class CustomerAuthController extends Controller
             ->with('success', 'Logged out successfully.');
     }
 
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $customer = Auth::guard('customer')->user();
         
@@ -108,11 +111,48 @@ class CustomerAuthController extends Controller
             return redirect()->route('customer.login');
         }
 
-        $products = Product::orderBy('name')->get();
+        // Get selected branch from session or request
+        $selectedBranchId = $request->branch_id ?? session('selected_branch_id');
+        
         $branches = Branch::where('is_active', true)->get();
+        
+        // If no branch selected, get the first active branch
+        if (!$selectedBranchId && $branches->isNotEmpty()) {
+            $selectedBranchId = $branches->first()->id;
+            session(['selected_branch_id' => $selectedBranchId]);
+        }
+
+        // Debug: Log the selected branch
+        Log::info('Customer Dashboard - Selected Branch', [
+            'branch_id' => $selectedBranchId,
+            'customer_id' => $customer->id
+        ]);
+
+        $products = Product::orderBy('name')->get();
+        
+        foreach ($products as $product) {
+            // Check if product has recipes
+            if ($product->recipes->isEmpty()) {
+                $product->is_available = false;
+                $product->available_branches = [];
+                $product->stock_count = 0;
+                continue;
+            }
+            
+            // Check availability in the SELECTED branch ONLY
+            $branchStock = $this->getProductStockInBranch($product, $selectedBranchId);
+            $product->is_available = $branchStock['available'];
+            $product->stock_count = $branchStock['max_quantity'] ?? 0;
+            
+            // Get available branches for "Check other branches" feature
+            $product->available_branches = $this->getAvailableBranches($product, $branches);
+        }
+        
         $recentPurchases = $customer->sales()->with('branch')->latest()->take(10)->get();
         $totalSpent = $customer->sales()->sum('total_amount') ?? 0;
         $totalOrders = $customer->sales()->count();
+        
+        $discountRate = $this->calculateDiscount($customer->loyalty_points ?? 0);
         
         $mostBought = DB::table('sale_items')
             ->join('products', 'sale_items.product_id', '=', 'products.id')
@@ -127,20 +167,179 @@ class CustomerAuthController extends Controller
             ->get();
 
         return view('customer.dashboard', compact(
-            'customer', 'products', 'branches',
-            'recentPurchases', 'totalSpent', 'totalOrders', 'mostBought'
+            'customer', 'products', 'branches', 'selectedBranchId',
+            'recentPurchases', 'totalSpent', 'totalOrders', 'mostBought', 'discountRate'
         ));
     }
 
-    public function placeOrder(Request $request)
+    private function calculateDiscount($points)
     {
+        if ($points >= 1000) return 20;
+        if ($points >= 500) return 15;
+        if ($points >= 250) return 10;
+        if ($points >= 100) return 5;
+        return 0;
+    }
+
+    private function getProductStockInBranch($product, $branchId)
+    {
+        if ($product->recipes->isEmpty()) {
+            return ['available' => false, 'max_quantity' => 0];
+        }
+
+        $maxServings = PHP_INT_MAX;
+        $available = true;
+        $missingIngredients = [];
+
+        foreach ($product->recipes as $recipe) {
+            $branchStock = DB::table('branch_item')
+                ->where('branch_id', $branchId)
+                ->where('item_id', $recipe->item_id)
+                ->first();
+
+            $stockQty = $branchStock->stock_quantity ?? 0;
+            $itemName = $recipe->item->name ?? 'Unknown';
+            
+            // Calculate servings based on batch mode
+            $servingsPossible = $this->calculateServingsPossible($recipe, $stockQty);
+            
+            if ($servingsPossible < $maxServings) {
+                $maxServings = $servingsPossible;
+            }
+
+            // If no stock or insufficient stock, mark as not available
+            if ($stockQty < $recipe->quantity) {
+                $available = false;
+                $missingIngredients[] = $itemName;
+            }
+        }
+
+        // Log missing ingredients for debugging
+        if (!$available) {
+            Log::info('Product not available', [
+                'product' => $product->name,
+                'branch_id' => $branchId,
+                'missing_ingredients' => $missingIngredients
+            ]);
+        }
+
+        return [
+            'available' => $available && $maxServings > 0,
+            'max_quantity' => $maxServings > 0 ? $maxServings : 0,
+            'missing_ingredients' => $missingIngredients
+        ];
+    }
+
+    private function calculateServingsPossible($recipe, $stockQty)
+    {
+        // If batch mode, calculate servings per batch
+        if ($recipe->is_batch && $recipe->batch_size > 1) {
+            $batchesPossible = floor($stockQty / $recipe->quantity);
+            return $batchesPossible * $recipe->batch_size;
+        }
+        
+        // Normal mode (per serving)
+        return floor($stockQty / $recipe->quantity);
+    }
+
+    private function getAvailableBranches($product, $branches)
+    {
+        $availableBranches = [];
+        
+        foreach ($branches as $branch) {
+            $stock = $this->getProductStockInBranch($product, $branch->id);
+            if ($stock['available']) {
+                $availableBranches[] = [
+                    'id' => $branch->id,
+                    'name' => str_replace('☕ Brew & Bean Co. - ', '', $branch->name),
+                    'stock' => $stock['max_quantity']
+                ];
+            }
+        }
+        
+        return $availableBranches;
+    }
+
+    public function switchBranch(Request $request)
+    {
+        $branchId = $request->branch_id;
+        session(['selected_branch_id' => $branchId]);
+        
+        return redirect()->route('customer.dashboard')
+            ->with('success', 'Switched to selected branch');
+    }
+
+    public function loyaltyPoints()
+    {
+        $customer = Auth::guard('customer')->user();
+        
+        if (!$customer) {
+            return redirect()->route('customer.login');
+        }
+
+        $currentPoints = $customer->loyalty_points ?? 0;
+        
+        $tiers = [
+            ['points' => 0, 'discount' => 0, 'label' => 'Bronze', 'color' => '#cd7f32'],
+            ['points' => 100, 'discount' => 5, 'label' => 'Silver', 'color' => '#c0c0c0'],
+            ['points' => 250, 'discount' => 10, 'label' => 'Gold', 'color' => '#ffd700'],
+            ['points' => 500, 'discount' => 15, 'label' => 'Platinum', 'color' => '#e5e4e2'],
+            ['points' => 1000, 'discount' => 20, 'label' => 'Diamond', 'color' => '#b9f2ff'],
+        ];
+
+        $currentTier = $tiers[0];
+        $nextTier = null;
+        
+        foreach ($tiers as $index => $tier) {
+            if ($currentPoints >= $tier['points']) {
+                $currentTier = $tier;
+                if (isset($tiers[$index + 1])) {
+                    $nextTier = $tiers[$index + 1];
+                }
+            }
+        }
+
+        $pointsHistory = $customer->sales()
+            ->where('total_amount', '>', 0)
+            ->select('id', 'total_amount', 'sale_date', 'discount_rate')
+            ->orderBy('sale_date', 'desc')
+            ->limit(20)
+            ->get();
+
+        foreach ($pointsHistory as $sale) {
+            $sale->points_earned = floor($sale->total_amount / 100);
+        }
+
+        return view('customer.loyalty', compact(
+            'customer', 'currentPoints', 'tiers', 'currentTier', 'nextTier', 'pointsHistory'
+        ));
+    }
+
+    public function profile()
+    {
+        $customer = Auth::guard('customer')->user();
+        
+        if (!$customer) {
+            return redirect()->route('customer.login');
+        }
+
+        return view('customer.profile', compact('customer'));
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $customer = Auth::guard('customer')->user();
+        
+        if (!$customer) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
         $validator = Validator::make($request->all(), [
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'branch_id' => 'required|exists:branches,id',
-            'delivery_address' => 'nullable|string|max:500',
-            'notes' => 'nullable|string|max:500',
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
 
         if ($validator->fails()) {
@@ -152,18 +351,212 @@ class CustomerAuthController extends Controller
         }
 
         try {
+            $customer->name = $request->name;
+            $customer->phone = $request->phone;
+            $customer->address = $request->address;
+            $customer->latitude = $request->latitude;
+            $customer->longitude = $request->longitude;
+            $customer->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully!',
+                'customer' => $customer
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function updateAddress(Request $request)
+    {
+        $customer = Auth::guard('customer')->user();
+        
+        if (!$customer) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'address' => 'required|string|max:500',
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $customer->address = $request->address;
+            $customer->latitude = $request->latitude;
+            $customer->longitude = $request->longitude;
+            $customer->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Address updated successfully!',
+                'customer' => $customer
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function getBranchesNearby(Request $request)
+    {
+        $lat = $request->lat;
+        $lng = $request->lng;
+        
+        $branches = Branch::where('is_active', true)->get();
+        
+        foreach ($branches as $branch) {
+            if ($branch->latitude && $branch->longitude) {
+                $distance = $this->calculateDistance($lat, $lng, $branch->latitude, $branch->longitude);
+                $branch->distance = round($distance, 2);
+                $branch->distance_text = $this->formatDistance($distance);
+            } else {
+                $branch->distance = null;
+                $branch->distance_text = 'N/A';
+            }
+        }
+        
+        $branches = $branches->sortBy('distance')->values();
+        $nearest = $branches->first();
+        
+        return response()->json([
+            'branches' => $branches,
+            'nearest' => $nearest,
+            'user_lat' => $lat,
+            'user_lng' => $lng
+        ]);
+    }
+
+    private function formatDistance($distance)
+    {
+        if ($distance < 1) {
+            return round($distance * 1000) . ' m';
+        }
+        return number_format($distance, 1) . ' km';
+    }
+
+    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadius = 6371;
+        
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        
+        $a = sin($dLat/2) * sin($dLat/2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($dLon/2) * sin($dLon/2);
+        
+        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+        
+        return $earthRadius * $c;
+    }
+
+    public function placeOrder(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'items' => 'required|array|min:1',
+                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.quantity' => 'required|integer|min:1',
+                'branch_id' => 'required|exists:branches,id',
+                'delivery_address' => 'nullable|string|max:500',
+                'notes' => 'nullable|string|max:500',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
             DB::beginTransaction();
 
             $customer = Auth::guard('customer')->user();
+            $branchId = $request->branch_id;
             $totalAmount = 0;
-            $items = [];
+            $orderItems = [];
+            $ingredientsUsed = [];
 
             foreach ($request->items as $item) {
-                $product = Product::find($item['product_id']);
+                $product = Product::with('recipes.item')->find($item['product_id']);
+                
+                if (!$product) {
+                    throw new \Exception('Product not found.');
+                }
+                
+                if ($product->recipes->isEmpty()) {
+                    throw new \Exception('Product "' . $product->name . '" has no recipe defined.');
+                }
+
+                foreach ($product->recipes as $recipe) {
+                    $itemId = $recipe->item_id;
+                    $recipeQty = $recipe->quantity;
+                    $recipeUnit = $recipe->unit;
+                    $quantityOrdered = $item['quantity'];
+                    
+                    $itemModel = Item::find($itemId);
+                    $stockUnit = $itemModel->unit ?? 'g';
+                    $itemName = $itemModel->name ?? 'Unknown';
+                    
+                    $neededInRecipeUnit = $recipeQty * $quantityOrdered;
+                    
+                    $branchStock = DB::table('branch_item')
+                        ->where('branch_id', $branchId)
+                        ->where('item_id', $itemId)
+                        ->first();
+
+                    $availableStock = $branchStock->stock_quantity ?? 0;
+                    
+                    $availableInRecipeUnit = UnitConverter::convert(
+                        $availableStock,
+                        $stockUnit,
+                        $recipeUnit,
+                        $itemName,
+                        $itemId
+                    );
+
+                    if ($availableInRecipeUnit < $neededInRecipeUnit) {
+                        throw new \Exception(
+                            'Sorry, "' . $product->name . '" is currently out of stock. Please try another product or branch.'
+                        );
+                    }
+
+                    $neededInStockUnit = UnitConverter::convert(
+                        $neededInRecipeUnit,
+                        $recipeUnit,
+                        $stockUnit,
+                        $itemName,
+                        $itemId
+                    );
+
+                    if (!isset($ingredientsUsed[$itemId])) {
+                        $ingredientsUsed[$itemId] = 0;
+                    }
+                    $ingredientsUsed[$itemId] += $neededInStockUnit;
+                }
+
                 $subtotal = $product->price * $item['quantity'];
                 $totalAmount += $subtotal;
 
-                $items[] = [
+                $orderItems[] = [
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
                     'unit_price' => $product->price,
@@ -171,19 +564,37 @@ class CustomerAuthController extends Controller
                 ];
             }
 
+            $discountRate = $this->calculateDiscount($customer->loyalty_points ?? 0);
+            $discountAmount = ($totalAmount * $discountRate) / 100;
+            $finalTotal = $totalAmount - $discountAmount;
+
+            foreach ($ingredientsUsed as $itemId => $totalQty) {
+                DB::table('branch_item')
+                    ->where('branch_id', $branchId)
+                    ->where('item_id', $itemId)
+                    ->decrement('stock_quantity', $totalQty);
+            }
+
             $sale = Sale::create([
-                'branch_id' => $request->branch_id,
+                'branch_id' => $branchId,
                 'customer_id' => $customer->id,
                 'user_id' => null,
-                'total_amount' => $totalAmount,
+                'total_amount' => $finalTotal,
+                'original_amount' => $totalAmount,
+                'discount_amount' => $discountAmount,
+                'discount_rate' => $discountRate,
                 'sale_date' => now(),
                 'sync_status' => 'synced',
                 'delivery_address' => $request->delivery_address ?? $customer->address,
-                'delivery_status' => 'pending',
+                'delivery_status' => $request->delivery_address ? 'pending' : 'completed',
                 'order_notes' => $request->notes,
             ]);
 
-            foreach ($items as $item) {
+            $pointsEarned = floor($finalTotal / 100);
+            $customer->loyalty_points += $pointsEarned;
+            $customer->save();
+
+            foreach ($orderItems as $item) {
                 SaleItem::create([
                     'sale_id' => $sale->id,
                     'product_id' => $item['product_id'],
@@ -207,14 +618,22 @@ class CustomerAuthController extends Controller
                 'success' => true,
                 'message' => 'Order placed successfully!',
                 'order_id' => $sale->id,
-                'total' => $totalAmount,
+                'total' => $finalTotal,
+                'original_total' => $totalAmount,
+                'discount' => $discountAmount,
+                'discount_rate' => $discountRate,
+                'points_earned' => $pointsEarned,
+                'total_points' => $customer->loyalty_points,
+                'delivery_status' => $sale->delivery_status,
+                'tracking_url' => route('customer.track', $sale->id)
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Order placement error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to place order: ' . $e->getMessage()
+                'message' => $e->getMessage()
             ], 400);
         }
     }
@@ -235,5 +654,98 @@ class CustomerAuthController extends Controller
             ->findOrFail($id);
         
         return view('customer.order-details', compact('order'));
+    }
+
+    public function trackOrder($id)
+    {
+        $customer = Auth::guard('customer')->user();
+        $order = Sale::with(['items.product', 'branch', 'orders'])
+            ->where('customer_id', $customer->id)
+            ->findOrFail($id);
+        
+        $status = $order->delivery_status ?? 'pending';
+        $statuses = [
+            'pending' => ['label' => 'Order Placed', 'icon' => 'fa-clipboard-check', 'color' => '#ffc107'],
+            'preparing' => ['label' => 'Preparing', 'icon' => 'fa-utensils', 'color' => '#17a2b8'],
+            'ready' => ['label' => 'Ready for Pickup', 'icon' => 'fa-box', 'color' => '#fd7e14'],
+            'out_for_delivery' => ['label' => 'Out for Delivery', 'icon' => 'fa-truck', 'color' => '#6F4E37'],
+            'completed' => ['label' => 'Delivered', 'icon' => 'fa-check-circle', 'color' => '#28a745'],
+            'cancelled' => ['label' => 'Cancelled', 'icon' => 'fa-times-circle', 'color' => '#dc3545'],
+        ];
+        
+        $estimatedTime = $order->created_at->addMinutes(45);
+        
+        return view('customer.track', compact('order', 'status', 'statuses', 'estimatedTime'));
+    }
+
+    public function getTrackingStatus($id)
+    {
+        $customer = Auth::guard('customer')->user();
+        $order = Sale::where('customer_id', $customer->id)->findOrFail($id);
+        
+        return response()->json([
+            'success' => true,
+            'status' => $order->delivery_status ?? 'pending',
+            'updated_at' => $order->updated_at->diffForHumans(),
+        ]);
+    }
+
+    public function getProductStock(Request $request)
+    {
+        $productId = $request->product_id;
+        $branchId = $request->branch_id;
+        
+        $product = Product::with('recipes.item')->find($productId);
+        
+        if (!$product || $product->recipes->isEmpty()) {
+            return response()->json([
+                'available' => false,
+                'message' => 'Product not available',
+                'error' => null
+            ]);
+        }
+
+        $available = true;
+        $stockDetails = [];
+        $maxServings = PHP_INT_MAX;
+        $missingIngredients = [];
+
+        foreach ($product->recipes as $recipe) {
+            $branchStock = DB::table('branch_item')
+                ->where('branch_id', $branchId)
+                ->where('item_id', $recipe->item_id)
+                ->first();
+
+            $stockQty = $branchStock->stock_quantity ?? 0;
+            $needed = $recipe->quantity;
+            $itemName = $recipe->item->name ?? 'Unknown';
+            
+            $servingsPossible = $this->calculateServingsPossible($recipe, $stockQty);
+            
+            if ($servingsPossible < $maxServings) {
+                $maxServings = $servingsPossible;
+            }
+            
+            $stockDetails[] = [
+                'item' => $itemName,
+                'available' => $stockQty,
+                'needed' => $needed,
+                'servings_possible' => $servingsPossible,
+                'sufficient' => $stockQty >= $needed
+            ];
+            
+            if ($stockQty < $needed) {
+                $available = false;
+                $missingIngredients[] = $itemName;
+            }
+        }
+
+        return response()->json([
+            'available' => $available && $maxServings > 0,
+            'max_quantity' => $maxServings > 0 ? $maxServings : 0,
+            'details' => $stockDetails,
+            'missing_ingredients' => $missingIngredients,
+            'error' => null
+        ]);
     }
 }

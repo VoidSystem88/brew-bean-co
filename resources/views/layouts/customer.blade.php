@@ -6,6 +6,8 @@
     <title>@yield('page-title', 'Brew & Bean Co.')</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         :root {
@@ -111,6 +113,7 @@
             cursor: pointer;
             float: right;
         }
+        .mobile-sidebar .close-btn:hover { color: #333; }
         .mobile-sidebar .avatar {
             width: 56px; height: 56px; border-radius: 50%;
             background: #6F4E37; color: white;
@@ -145,15 +148,8 @@
             text-align: center;
             margin: 10px 0;
         }
-        .sidebar-qr canvas {
-            max-width: 120px;
-            height: auto;
-        }
-        .sidebar-qr .qr-label {
-            font-size: 11px;
-            color: #999;
-            margin-top: 4px;
-        }
+        .sidebar-qr canvas { max-width: 120px; height: auto; }
+        .sidebar-qr .qr-label { font-size: 11px; color: #999; margin-top: 4px; }
 
         .sidebar-content { flex: 1; }
         .sidebar-footer { border-top: 1px solid #eee; padding-top: 10px; }
@@ -172,11 +168,58 @@
             .main-content { padding: 15px; }
             .mobile-sidebar { width: 280px; left: -280px; }
         }
+        
+        /* Leaflet map fix */
+        .leaflet-container {
+            z-index: 1;
+        }
+        .modal-mini-map .leaflet-container {
+            height: 100%;
+            width: 100%;
+        }
+        
+        /* Coffee Marker for Leaflet */
+        .coffee-marker {
+            background: #6F4E37;
+            color: white;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .home-marker {
+            background: #4285F4;
+            color: white;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Badge for orders */
+        .order-badge {
+            background: #dc3545;
+            color: white;
+            font-size: 10px;
+            padding: 1px 8px;
+            border-radius: 10px;
+            margin-left: auto;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Customer Top Navigation (no logout) -->
+    <!-- Customer Top Navigation -->
     <nav class="customer-nav">
         <div>
             <button class="menu-btn" onclick="toggleMobileSidebar()">
@@ -217,8 +260,18 @@
 
         <!-- Menu Links -->
         <div class="sidebar-content">
-            <a href="{{ route('customer.dashboard') }}" class="nav-link active">
+            <a href="{{ route('customer.dashboard') }}" class="nav-link {{ request()->routeIs('customer.dashboard') ? 'active' : '' }}">
                 <i class="fas fa-home"></i> Menu
+            </a>
+            <a href="{{ route('customer.loyalty') }}" class="nav-link {{ request()->routeIs('customer.loyalty') ? 'active' : '' }}">
+                <i class="fas fa-star"></i> Loyalty Points
+            </a>
+            <a href="{{ route('customer.orders') }}" class="nav-link {{ request()->routeIs('customer.orders') ? 'active' : '' }}">
+                <i class="fas fa-box"></i> My Orders
+                <span class="order-badge" id="orderBadge" style="display:none;">0</span>
+            </a>
+            <a href="{{ route('customer.profile') }}" class="nav-link {{ request()->routeIs('customer.profile') ? 'active' : '' }}">
+                <i class="fas fa-user"></i> My Profile
             </a>
         </div>
 
@@ -271,6 +324,8 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     @stack('scripts')
 </body>
 </html>

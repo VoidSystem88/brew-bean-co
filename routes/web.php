@@ -45,10 +45,48 @@ Route::post('/customer/logout', [CustomerAuthController::class, 'logout'])->name
 
 // Customer Dashboard & Order Routes
 Route::get('/customer/dashboard', [CustomerAuthController::class, 'dashboard'])->name('customer.dashboard');
+Route::post('/customer/switch-branch', [CustomerAuthController::class, 'switchBranch'])->name('customer.switch-branch');
+Route::get('/customer/loyalty', [CustomerAuthController::class, 'loyaltyPoints'])->name('customer.loyalty');
+Route::get('/customer/branches', [CustomerController::class, 'branches'])->name('customer.branches');
+Route::get('/customer/branches/nearby', [CustomerAuthController::class, 'getBranchesNearby'])->name('customer.branches.nearby');
 Route::post('/customer/place-order', [CustomerAuthController::class, 'placeOrder'])->name('customer.place-order');
 Route::get('/customer/orders', [CustomerAuthController::class, 'orderHistory'])->name('customer.orders');
 Route::get('/customer/order/{id}', [CustomerAuthController::class, 'orderDetails'])->name('customer.order-details');
 Route::get('/customer/qr/{id}', [CustomerController::class, 'generateQr'])->name('customer.qr');
+Route::get('/customer/product-stock', [CustomerAuthController::class, 'getProductStock'])->name('customer.product-stock');
+
+// Customer Tracking Routes
+Route::get('/customer/track/{id}', [CustomerAuthController::class, 'trackOrder'])->name('customer.track');
+Route::get('/customer/track/{id}/status', [CustomerAuthController::class, 'getTrackingStatus'])->name('customer.track.status');
+
+// Customer Profile Routes
+Route::get('/customer/profile', [CustomerAuthController::class, 'profile'])->name('customer.profile');
+Route::post('/customer/profile/update', [CustomerAuthController::class, 'updateProfile'])->name('customer.update-profile');
+Route::post('/customer/profile/update-address', [CustomerAuthController::class, 'updateAddress'])->name('customer.update-address');
+
+// Barista Queue Routes
+Route::middleware(['auth'])->prefix('barista')->name('barista.')->group(function () {
+    Route::get('/queue', [OrderQueueController::class, 'index'])->name('queue');
+    Route::get('/queue-data', [OrderQueueController::class, 'getQueueData'])->name('queue.data');
+    Route::get('/orders/{sale}', [OrderQueueController::class, 'show'])->name('orders.show');
+    Route::post('/orders/{sale}/accept', [OrderQueueController::class, 'acceptOrder'])->name('orders.accept');
+    Route::post('/orders/{sale}/ready', [OrderQueueController::class, 'markReady'])->name('orders.ready');
+    Route::post('/orders/{sale}/complete', [OrderQueueController::class, 'completeOrder'])->name('orders.complete');
+    Route::post('/orders/{sale}/cancel', [OrderQueueController::class, 'cancelOrder'])->name('orders.cancel');
+});
+
+// Admin Settings Routes
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
+    Route::post('/settings/brand', [SettingsController::class, 'updateBrand'])->name('settings.brand');
+    Route::post('/settings/logo', [SettingsController::class, 'updateLogo'])->name('settings.logo');
+    Route::delete('/settings/logo', [SettingsController::class, 'removeLogo'])->name('settings.logo.remove');
+    Route::get('/settings/logo', [SettingsController::class, 'getLogo'])->name('settings.logo.get');
+});
+
+// Branch Search & Geocode Routes
+Route::get('/branches/search-location', [BranchController::class, 'searchLocation'])->name('branches.search-location');
+Route::get('/branches/geocode', [BranchController::class, 'geocode'])->name('branches.geocode');
 
 // Protected Routes (Admin/Staff)
 Route::middleware(['auth'])->group(function () {
@@ -89,10 +127,6 @@ Route::middleware(['auth'])->group(function () {
     // Recipes - Create product with recipe
     Route::resource('recipes', RecipeController::class);
 
-    // Barista Queue
-    Route::get('/barista/queue', [OrderQueueController::class, 'index'])->name('barista.queue');
-    Route::post('/barista/order/{id}/status', [OrderQueueController::class, 'updateStatus'])->name('barista.update-status');
-
     // Suppliers - Admin only
     Route::resource('suppliers', SupplierController::class)->middleware('role:admin');
 
@@ -125,6 +159,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/pos/process', [PosController::class, 'processSale'])->name('pos.process');
     Route::get('/pos/get-stock', [PosController::class, 'getProductStock'])->name('pos.get-stock');
     Route::get('/pos/receipt/{sale}', [PosController::class, 'receipt'])->name('pos.receipt');
+    Route::get('/pos/receipt/{sale}/regenerate', [PosController::class, 'regenerateReceipt'])->name('pos.receipt.regenerate');
+    Route::get('/pos/search-customer', [PosController::class, 'searchCustomer'])->name('pos.search-customer');
 
     // Customers (Admin/Staff management)
     Route::resource('customers', CustomerController::class);
@@ -146,9 +182,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/sync/offline', [SyncController::class, 'simulateOffline'])->name('sync.offline');
     Route::post('/sync/online', [SyncController::class, 'simulateOnline'])->name('sync.online');
     Route::get('/sync/status', [SyncController::class, 'checkStatus'])->name('sync.status');
-
-    // Settings
-    Route::get('/admin/settings', [SettingsController::class, 'index'])->name('admin.settings')->middleware('role:admin');
 
     // Database Management
     Route::get('/admin/database', [DatabaseController::class, 'index'])->name('admin.database')->middleware('role:admin');

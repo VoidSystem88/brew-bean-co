@@ -3,689 +3,925 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('page-title', 'Brew & Bean Co.')</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         :root {
+            --sidebar-width: 260px;
+            --sidebar-collapsed: 70px;
             --primary-brown: #6F4E37;
-            --secondary-brown: #8B6B4A;
-            --light-beige: #F5F0EB;
-        }
-        * {
-            box-sizing: border-box;
-        }
-        body {
-            background: #f5f0eb;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
-        }
-        .sidebar {
-            background: var(--primary-brown);
-            min-height: 100vh;
-            padding: 20px 0;
-            color: white;
-            position: fixed;
-            width: 250px;
-            top: 0;
-            left: 0;
-            z-index: 1000;
-            transition: all 0.3s;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        .sidebar-brand {
-            padding: 0 20px 20px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 20px;
-            flex-shrink: 0;
-        }
-        .sidebar-brand h3 {
-            font-weight: 700;
-            margin: 0;
-            color: white;
-        }
-        .sidebar-brand h3 i {
-            color: #ffd700;
-        }
-        .sidebar-brand small {
-            color: rgba(255,255,255,0.7);
-        }
-        .sidebar-menu {
-            flex: 1;
-            overflow-y: auto;
-            padding: 5px 0 10px;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,0.3) transparent;
-        }
-        .sidebar-menu::-webkit-scrollbar {
-            width: 5px;
-        }
-        .sidebar-menu::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-        }
-        .sidebar-menu::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.3);
-            border-radius: 10px;
-        }
-        .sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
-            padding: 10px 20px;
-            border-radius: 8px;
-            margin: 2px 10px;
-            transition: all 0.2s;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-        .sidebar .nav-link:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
-        }
-        .sidebar .nav-link.active {
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-        .sidebar .nav-link i {
-            width: 24px;
-            text-align: center;
-            margin-right: 10px;
-        }
-        .sidebar .nav-link .badge-low-stock {
-            background: #dc3545;
-            color: white;
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            margin-left: 5px;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        .sidebar .nav-section {
-            padding: 8px 20px 4px;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255,255,255,0.3);
-            font-weight: 600;
-        }
-        .sidebar-footer {
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding: 8px 0;
-            flex-shrink: 0;
-            background: var(--primary-brown);
-        }
-        .sidebar-footer .nav-link {
-            color: rgba(255,255,255,0.6);
-            font-size: 13px;
-            padding: 8px 20px;
-            border-radius: 8px;
-            margin: 1px 10px;
-            transition: all 0.2s;
-        }
-        .sidebar-footer .nav-link:hover {
-            color: white;
-            background: rgba(255,255,255,0.05);
-        }
-        .sidebar-footer .nav-link i {
-            width: 24px;
-            text-align: center;
-            margin-right: 10px;
+            --online-color: #28a745;
+            --offline-color: #dc3545;
         }
         
-        .main-content {
-            margin-left: 250px;
-            padding: 20px 30px;
-            min-height: 100vh;
-            width: calc(100% - 250px);
-            max-width: 100%;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f2ef;
             overflow-x: hidden;
         }
-        .main-content .container-fluid {
-            padding-left: 0;
-            padding-right: 0;
-            max-width: 100%;
-        }
-        .navbar-custom {
-            background: white;
-            padding: 10px 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            margin-bottom: 20px;
+        
+        .app-container {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
+            min-height: 100vh;
         }
-        .navbar-custom .left-section {
+        
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #2d1f14;
+            color: #e8e0d8;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 1000;
+            transition: width 0.3s ease;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: #2d1f14;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #5a3d2b;
+            border-radius: 10px;
+        }
+        
+        .sidebar .sidebar-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
             display: flex;
             align-items: center;
             gap: 12px;
+            min-height: 70px;
         }
-        .navbar-custom .right-section {
+        
+        .sidebar .sidebar-header .logo-container {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: #f8f6f4;
             display: flex;
             align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
+            justify-content: center;
         }
-        .navbar-custom .user-info {
+        
+        .sidebar .sidebar-header .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .sidebar .sidebar-header .logo-container .placeholder {
+            color: #999;
+            font-size: 20px;
+        }
+        
+        .sidebar .sidebar-header .brand-text {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .sidebar .sidebar-header .brand-text small {
+            display: block;
+            font-size: 10px;
+            font-weight: 400;
+            color: #999;
+        }
+        
+        .sidebar .nav-section {
+            padding: 12px 20px 6px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            font-weight: 600;
+        }
+        
+        .sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: #b8b0a8;
+            text-decoration: none;
+            transition: 0.2s;
+            font-size: 14px;
+            border-left: 3px solid transparent;
+            position: relative;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar .nav-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+        
+        .sidebar .nav-link.active {
+            background: rgba(111, 78, 55, 0.3);
+            color: white;
+            border-left-color: #6F4E37;
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        
+        .sidebar .nav-link .badge {
+            margin-left: auto;
+            background: #6F4E37;
+            color: white;
+            font-size: 10px;
+            padding: 1px 8px;
+            border-radius: 10px;
+        }
+        
+        .sidebar .sidebar-footer {
+            margin-top: auto;
+            padding: 12px 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        
+        .sidebar .sidebar-footer .user-info {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        .navbar-custom .user-info .avatar {
-            width: 38px;
-            height: 38px;
-            background: var(--primary-brown);
-            color: white;
+        
+        .sidebar .sidebar-footer .user-info .avatar {
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
+            background: #6F4E37;
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 16px;
-        }
-        .navbar-custom .search-box {
-            position: relative;
-            min-width: 250px;
-        }
-        .navbar-custom .search-box input {
-            padding: 8px 16px 8px 40px;
-            border-radius: 20px;
-            border: 1px solid #e8e8e8;
+            font-weight: 700;
             font-size: 14px;
-            width: 100%;
-            transition: all 0.3s;
-            background: #f8f9fa;
+            flex-shrink: 0;
         }
-        .navbar-custom .search-box input:focus {
-            outline: none;
+        
+        .sidebar .sidebar-footer .user-info .user-name {
+            font-size: 13px;
+            color: #e8e0d8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .sidebar .sidebar-footer .user-info .user-role {
+            font-size: 11px;
+            color: #888;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            transition: margin-left 0.3s ease;
+            min-height: 100vh;
+        }
+        
+        .main-content .top-bar {
+            background: white;
+            padding: 8px 20px;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .main-content .top-bar .left-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .main-content .top-bar .toggle-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #666;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        
+        .main-content .top-bar .toggle-btn:hover {
+            color: #6F4E37;
+        }
+        
+        .main-content .top-bar .search-container {
+            flex: 1;
+            max-width: 500px;
+            min-width: 150px;
+            position: relative;
+        }
+        
+        .main-content .top-bar .search-container .search-input {
+            width: 100%;
+            padding: 6px 16px 6px 38px;
+            border: 1px solid #e8e8e8;
+            border-radius: 20px;
+            font-size: 13px;
+            transition: 0.3s;
+            background: #f8f6f4;
+        }
+        
+        .main-content .top-bar .search-container .search-input:focus {
             border-color: #6F4E37;
+            outline: none;
             box-shadow: 0 0 0 3px rgba(111, 78, 55, 0.1);
             background: white;
         }
-        .navbar-custom .search-box .search-icon {
+        
+        .main-content .top-bar .search-container .search-icon {
             position: absolute;
-            left: 14px;
+            left: 12px;
             top: 50%;
             transform: translateY(-50%);
             color: #999;
+            font-size: 14px;
         }
-        .navbar-custom .search-box .search-shortcut {
+        
+        .main-content .top-bar .search-container .search-clear {
             position: absolute;
             right: 12px;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 11px;
             color: #999;
-            background: #e8e8e8;
-            padding: 1px 8px;
-            border-radius: 4px;
+            cursor: pointer;
+            display: none;
+            font-size: 14px;
         }
+        
         .search-results {
             position: absolute;
             top: 100%;
             left: 0;
             right: 0;
             background: white;
-            border-radius: 12px;
             border: 1px solid #e8e8e8;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-            z-index: 9999;
+            border-radius: 10px;
             max-height: 400px;
             overflow-y: auto;
             display: none;
+            z-index: 9999;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
             margin-top: 4px;
         }
+        
         .search-results.show {
             display: block;
         }
+        
+        .search-results .result-group {
+            padding: 6px 14px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #999;
+            font-weight: 600;
+            background: #f8f6f4;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
         .search-results .result-item {
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border-bottom: 1px solid #f5f5f5;
+            padding: 8px 14px;
             cursor: pointer;
             transition: 0.2s;
-            text-decoration: none;
-            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #f5f5f5;
         }
+        
         .search-results .result-item:hover {
             background: #f8f6f4;
         }
-        .search-results .result-item:last-child {
-            border-bottom: none;
-        }
+        
         .search-results .result-item .result-icon {
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
+            background: #f0ebe6;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            color: #6F4E37;
+            font-size: 12px;
             flex-shrink: 0;
         }
+        
         .search-results .result-item .result-info {
             flex: 1;
         }
+        
         .search-results .result-item .result-info .result-title {
+            font-size: 13px;
             font-weight: 500;
-            font-size: 14px;
+            color: #333;
         }
+        
         .search-results .result-item .result-info .result-sub {
-            font-size: 12px;
+            font-size: 11px;
             color: #999;
         }
+        
         .search-results .result-item .result-badge {
-            font-size: 11px;
-            padding: 2px 10px;
-            border-radius: 12px;
-            background: #e9ecef;
-            color: #666;
-            font-weight: 500;
+            font-size: 10px;
+            padding: 1px 10px;
+            border-radius: 10px;
+            font-weight: 600;
         }
+        
+        .search-results .result-item .result-badge.product { background: #d4edda; color: #155724; }
+        .search-results .result-item .result-badge.customer { background: #cce5ff; color: #004085; }
+        .search-results .result-item .result-badge.order { background: #fff3cd; color: #856404; }
+        .search-results .result-item .result-badge.inventory { background: #f8d7da; color: #721c24; }
+        .search-results .result-item .result-badge.staff { background: #d1ecf1; color: #0c5460; }
+        .search-results .result-item .result-badge.branch { background: #e8d5b7; color: #6F4E37; }
+        
         .search-results .no-results {
             padding: 20px;
             text-align: center;
             color: #999;
-        }
-        .search-results .search-more {
-            padding: 10px 16px;
-            text-align: center;
-            border-top: 1px solid #f5f5f5;
-            background: #f8f9fa;
-            border-radius: 0 0 12px 12px;
-        }
-        .search-results .search-more a {
-            color: #6F4E37;
-            text-decoration: none;
-            font-weight: 500;
             font-size: 13px;
         }
-        .search-results .search-more a:hover {
-            text-decoration: underline;
+        
+        .search-results .no-results i {
+            font-size: 28px;
+            display: block;
+            margin-bottom: 8px;
+            color: #ddd;
         }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 280px;
-                transform: translateX(-100%);
-            }
-            .sidebar.show {
-                transform: translateX(0);
-            }
-            .main-content {
-                margin-left: 0;
-                padding: 15px;
-                width: 100%;
-            }
-            .sidebar-toggle {
-                display: block !important;
-            }
-            .navbar-custom .search-box {
-                min-width: 120px;
-                flex: 1;
-            }
-            .navbar-custom .search-box input {
-                font-size: 13px;
-                padding: 6px 12px 6px 32px;
-            }
-            .navbar-custom .search-box .search-shortcut {
-                display: none;
-            }
-            .navbar-custom {
-                padding: 8px 12px;
-            }
-            .navbar-custom .right-section {
-                gap: 8px;
-            }
-            .search-results {
-                position: fixed;
-                top: 60px;
-                left: 10px;
-                right: 10px;
-                max-height: 60vh;
-            }
+        
+        .main-content .top-bar .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid #e8e8e8;
+            background: white;
+            white-space: nowrap;
         }
-        .sidebar-toggle {
-            display: none;
-            background: var(--primary-brown);
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 8px;
-        }
-        .sidebar::-webkit-scrollbar {
-            width: 5px;
-        }
-        .sidebar::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.1);
-        }
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.3);
-            border-radius: 10px;
-        }
-        .status-dot {
+        
+        .main-content .top-bar .connection-status .dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
             display: inline-block;
-            margin-right: 5px;
         }
-        .status-dot.online {
-            background: #28a745;
+        
+        .main-content .top-bar .connection-status .dot.online {
+            background: var(--online-color);
         }
-        .status-dot.offline {
-            background: #dc3545;
+        
+        .main-content .top-bar .connection-status .dot.offline {
+            background: var(--offline-color);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        
+        .main-content .top-bar .connection-status .status-text.online {
+            color: var(--online-color);
+        }
+        
+        .main-content .top-bar .connection-status .status-text.offline {
+            color: var(--offline-color);
+        }
+        
+        .main-content .top-bar .right-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .main-content .top-bar .right-section .time-display {
+            font-size: 13px;
+            color: #999;
+            white-space: nowrap;
+        }
+        
+        .main-content .content {
+            padding: 20px 24px;
+        }
+        
+        @media (max-width: 992px) {
+            .main-content .top-bar .search-container { max-width: 300px; }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: var(--sidebar-collapsed); transform: translateX(0); }
+            .sidebar .brand-text, .sidebar .nav-link span, .sidebar .nav-section,
+            .sidebar .sidebar-footer .user-info .user-name,
+            .sidebar .sidebar-footer .user-info .user-role { display: none; }
+            .sidebar .sidebar-header { justify-content: center; padding: 12px; }
+            .sidebar .nav-link { justify-content: center; padding: 12px; }
+            .sidebar .sidebar-footer .user-info { justify-content: center; }
+            .main-content { margin-left: var(--sidebar-collapsed); }
+            .main-content .top-bar .search-container { max-width: 200px; }
+            .main-content .top-bar .connection-status .status-text { display: none; }
+            .main-content .top-bar .right-section .time-display { display: none; }
+        }
+        
+        @media (max-width: 576px) {
+            .sidebar { width: 0; transform: translateX(-100%); }
+            .sidebar.open { width: var(--sidebar-width); transform: translateX(0); }
+            .sidebar.open .brand-text, .sidebar.open .nav-link span,
+            .sidebar.open .nav-section,
+            .sidebar.open .sidebar-footer .user-info .user-name,
+            .sidebar.open .sidebar-footer .user-info .user-role { display: inline; }
+            .sidebar.open .sidebar-header { justify-content: flex-start; padding: 16px 20px; }
+            .sidebar.open .nav-link { justify-content: flex-start; padding: 10px 20px; }
+            .sidebar.open .sidebar-footer .user-info { justify-content: flex-start; }
+            .main-content { margin-left: 0; }
+            .main-content .top-bar { padding: 8px 12px; flex-wrap: wrap; }
+            .main-content .top-bar .search-container { max-width: 100%; flex: 1 1 100%; order: 3; }
+            .main-content .top-bar .left-section { flex: 0 1 auto; min-width: auto; }
+            .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.4); z-index: 999; }
+            .sidebar-overlay.show { display: block; }
         }
     </style>
 </head>
 <body>
-
-    <!-- Sidebar -->
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-brand">
-            <h3><i class="fas fa-mug-hot me-2"></i>Brew & Bean</h3>
-            <small>Management System</small>
-        </div>
-
-        <div class="sidebar-menu">
-            @auth
-                @php
-                    $user = Auth::user();
-                    $isAdmin = $user->isAdmin();
-                    $isManager = $user->isManager();
-                    $isStaff = $user->isStaff();
-                    
-                    $lowStockCount = 0;
-                    if ($isAdmin || $isManager) {
-                        $lowStockCount = DB::table('items')
-                            ->join('warehouse_stock', 'items.id', '=', 'warehouse_stock.item_id')
-                            ->whereColumn('warehouse_stock.stock_quantity', '<=', 'warehouse_stock.low_stock_threshold')
-                            ->count();
-                    }
-                @endphp
-
-                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-chart-pie"></i> Dashboard
-                </a>
-
-                @if($isStaff)
-                    <a href="{{ route('pos.index') }}" class="nav-link {{ request()->routeIs('pos.*') ? 'active' : '' }}">
-                        <i class="fas fa-cash-register"></i> POS
-                    </a>
-
-                    <a href="{{ route('inventory.index') }}" class="nav-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
-                        <i class="fas fa-boxes"></i> Inventory
-                    </a>
-
-                    <a href="{{ route('delivery.index') }}" class="nav-link {{ request()->routeIs('delivery.*') ? 'active' : '' }}">
-                        <i class="fas fa-truck"></i> Deliveries
-                    </a>
-
-                    <a href="{{ route('recipes.index') }}" class="nav-link {{ request()->routeIs('recipes.*') ? 'active' : '' }}">
-                        <i class="fas fa-utensils"></i> Recipes
-                    </a>
-
-                    <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
-                        <i class="fas fa-user-friends"></i> Customers
-                    </a>
-
-                    <a href="{{ route('barista.queue') }}" class="nav-link {{ request()->routeIs('barista.*') ? 'active' : '' }}">
-                        <i class="fas fa-clock"></i> Queue
-                    </a>
-
-                @elseif($isAdmin || $isManager)
-                    <div class="nav-section">Management</div>
-                    <a href="{{ route('branches.index') }}" class="nav-link {{ request()->routeIs('branches.*') ? 'active' : '' }}">
-                        <i class="fas fa-store"></i> Branches
-                    </a>
-                    <a href="{{ route('staff.index') }}" class="nav-link {{ request()->routeIs('staff.*') ? 'active' : '' }}">
-                        <i class="fas fa-users"></i> Staff
-                    </a>
-                    <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
-                        <i class="fas fa-user-friends"></i> Customers
-                    </a>
-                    <a href="{{ route('suppliers.index') }}" class="nav-link {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
-                        <i class="fas fa-truck"></i> Suppliers
-                    </a>
-
-                    <div class="nav-section">Inventory</div>
-                    <a href="{{ route('inventory.index') }}" class="nav-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
-                        <i class="fas fa-boxes"></i> Inventory
-                        @if($lowStockCount > 0)
-                            <span class="badge-low-stock">{{ $lowStockCount }} low</span>
-                        @endif
-                    </a>
-                    <a href="{{ route('warehouse.index') }}" class="nav-link {{ request()->routeIs('warehouse.*') ? 'active' : '' }}">
-                        <i class="fas fa-warehouse"></i> Warehouse
-                    </a>
-
-                    <div class="nav-section">Products</div>
-                    <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
-                        <i class="fas fa-box"></i> Products
-                    </a>
-                    <a href="{{ route('recipes.index') }}" class="nav-link {{ request()->routeIs('recipes.*') ? 'active' : '' }}">
-                        <i class="fas fa-utensils"></i> Recipes
-                    </a>
-
-                    <div class="nav-section">Reports</div>
-                    <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-                        <i class="fas fa-chart-bar"></i> Reports
-                    </a>
-
-                    @if($isAdmin)
-                        <div class="nav-section">System</div>
-                        <a href="{{ route('admin.database') }}" class="nav-link {{ request()->routeIs('admin.database') ? 'active' : '' }}">
-                            <i class="fas fa-database"></i> Database
-                        </a>
-                        <a href="{{ route('sync.index') }}" class="nav-link {{ request()->routeIs('sync.*') ? 'active' : '' }}">
-                            <i class="fas fa-sync"></i> Sync
-                        </a>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    @php
+                        $logoPath = Storage::disk('public')->exists('settings/logo.png') 
+                            ? asset('storage/settings/logo.png') 
+                            : null;
+                        $brandName = Storage::disk('public')->exists('settings/brand_name.txt') 
+                            ? Storage::disk('public')->get('settings/brand_name.txt') 
+                            : 'Brew & Bean Co.';
+                        $brandTagline = Storage::disk('public')->exists('settings/brand_tagline.txt') 
+                            ? Storage::disk('public')->get('settings/brand_tagline.txt') 
+                            : 'Management System';
+                    @endphp
+                    @if($logoPath)
+                        <img src="{{ $logoPath }}" alt="Logo" id="sidebarLogo">
+                    @else
+                        <div class="placeholder" id="sidebarLogoPlaceholder">
+                            <i class="fas fa-store"></i>
+                        </div>
                     @endif
-                @endif
-            @endauth
-        </div>
+                </div>
+                <div class="brand-text">
+                    {{ $brandName }}
+                    <small>{{ $brandTagline }}</small>
+                </div>
+            </div>
 
-        <div class="sidebar-footer">
-            @auth
-                @if($isAdmin || $isManager)
-                    <a href="{{ route('admin.settings') }}" class="nav-link {{ request()->routeIs('admin.settings') ? 'active' : '' }}">
-                        <i class="fas fa-cog"></i> Settings
-                    </a>
-                @endif
-                <form action="{{ route('logout') }}" method="POST" class="m-0">
+            @php
+                $user = Auth::user();
+                $isAdmin = $user && $user->role === 'admin';
+                $isManager = $user && $user->role === 'manager';
+                $isStaff = $user && $user->role === 'staff';
+            @endphp
+
+            <!-- MAIN - Visible to ALL -->
+            <div class="nav-section">Main</div>
+            <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </a>
+
+            <!-- OPERATIONS - Visible to ALL -->
+            <div class="nav-section">Operations</div>
+            <a href="{{ route('staff.dashboard') }}" class="nav-link {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Staff Dashboard</span>
+            </a>
+            
+            <a href="{{ route('pos.index') }}" class="nav-link {{ request()->routeIs('pos.*') ? 'active' : '' }}">
+                <i class="fas fa-cash-register"></i>
+                <span>Point of Sale</span>
+            </a>
+            
+            <a href="{{ route('barista.queue') }}" class="nav-link {{ request()->routeIs('barista.*') ? 'active' : '' }}">
+                <i class="fas fa-clock"></i>
+                <span>Order Queue</span>
+                <span class="badge" id="queueBadge">0</span>
+            </a>
+
+            <!-- INVENTORY - Visible to ALL -->
+            <div class="nav-section">Inventory</div>
+            <a href="{{ route('delivery.index') }}" class="nav-link {{ request()->routeIs('delivery.*') ? 'active' : '' }}">
+                <i class="fas fa-truck"></i>
+                <span>Delivery</span>
+            </a>
+            <a href="{{ route('inventory.index') }}" class="nav-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
+                <i class="fas fa-boxes"></i>
+                <span>Inventory</span>
+            </a>
+            <a href="{{ route('recipes.index') }}" class="nav-link {{ request()->routeIs('recipes.*') ? 'active' : '' }}">
+                <i class="fas fa-utensils"></i>
+                <span>Recipes</span>
+            </a>
+
+            <!-- CUSTOMERS - Visible to ALL -->
+            <div class="nav-section">Customers</div>
+            <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
+                <i class="fas fa-user-friends"></i>
+                <span>Customers</span>
+            </a>
+
+            <!-- MANAGEMENT - Admin/Manager ONLY -->
+            @if($isAdmin || $isManager)
+                <div class="nav-section">Management</div>
+                <a href="{{ route('branches.index') }}" class="nav-link {{ request()->routeIs('branches.*') ? 'active' : '' }}">
+                    <i class="fas fa-store"></i>
+                    <span>Branches</span>
+                </a>
+                <a href="{{ route('staff.index') }}" class="nav-link {{ request()->routeIs('staff.*') ? 'active' : '' }}">
+                    <i class="fas fa-users"></i>
+                    <span>Staff</span>
+                </a>
+                <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
+                    <i class="fas fa-box"></i>
+                    <span>Products</span>
+                </a>
+                <a href="{{ route('suppliers.index') }}" class="nav-link {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
+                    <i class="fas fa-truck"></i>
+                    <span>Suppliers</span>
+                </a>
+                <a href="{{ route('warehouse.index') }}" class="nav-link {{ request()->routeIs('warehouse.*') ? 'active' : '' }}">
+                    <i class="fas fa-warehouse"></i>
+                    <span>Warehouse</span>
+                </a>
+            @endif
+
+            <!-- REPORTS - Admin/Manager ONLY -->
+            @if($isAdmin || $isManager)
+                <div class="nav-section">Reports</div>
+                <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reports</span>
+                </a>
+                <a href="{{ route('sync.index') }}" class="nav-link {{ request()->routeIs('sync.*') ? 'active' : '' }}">
+                    <i class="fas fa-sync"></i>
+                    <span>Sync</span>
+                </a>
+            @endif
+
+            <!-- SYSTEM - Admin ONLY -->
+            @if($isAdmin)
+                <div class="nav-section">System</div>
+                <a href="{{ route('admin.settings') }}" class="nav-link {{ request()->routeIs('admin.settings') ? 'active' : '' }}">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="{{ route('admin.database') }}" class="nav-link {{ request()->routeIs('admin.database') ? 'active' : '' }}">
+                    <i class="fas fa-database"></i>
+                    <span>Database</span>
+                </a>
+            @endif
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="avatar">{{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 1)) }}</div>
+                    <div>
+                        <div class="user-name">{{ Auth::user()->name ?? 'User' }}</div>
+                        <div class="user-role">{{ ucfirst(Auth::user()->role ?? 'Staff') }}</div>
+                    </div>
+                </div>
+                <form action="{{ route('logout') }}" method="POST" class="mt-2">
                     @csrf
-                    <button type="submit" class="nav-link" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+                    <button type="submit" class="btn btn-sm btn-danger w-100">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
                 </form>
-            @endauth
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="main-content">
-        <nav class="navbar-custom">
-            <div class="left-section">
-                <button class="sidebar-toggle" id="sidebarToggle">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <h5 class="mb-0 d-none d-sm-block">@yield('page-title', 'Dashboard')</h5>
-            </div>
-            <div class="right-section">
-                <!-- Search Box -->
-                <div class="search-box">
-                    <span class="search-icon"><i class="fas fa-search"></i></span>
-                    <input type="text" id="globalSearch" placeholder="Search..." onkeyup="handleSearch(this.value)" autocomplete="off">
-                    <span class="search-shortcut">Ctrl+K</span>
-                    <div class="search-results" id="searchResults"></div>
-                </div>
-
-                <div class="user-info">
-                    <span id="connectionStatus">
-                        <span class="status-dot online" id="statusDot"></span>
-                        <span id="statusText" class="text-muted d-none d-md-inline" style="font-size: 13px;">Online</span>
-                    </span>
-                    @auth
-                        <span class="text-muted d-none d-md-inline">{{ Auth::user()->name }}</span>
-                        <div class="avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</div>
-                    @endauth
-                </div>
             </div>
         </nav>
 
-        @yield('content')
+        <!-- Mobile Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="left-section">
+                    <button class="toggle-btn" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" id="globalSearch" placeholder="Search products, customers, orders..." autocomplete="off">
+                        <span class="search-clear" id="searchClear" onclick="clearSearch()">
+                            <i class="fas fa-times-circle"></i>
+                        </span>
+                        <div class="search-results" id="searchResults"></div>
+                    </div>
+                </div>
+                
+                <div class="right-section">
+                    <div class="connection-status" id="connectionStatus">
+                        <span class="dot online" id="statusDot"></span>
+                        <span class="status-text online" id="statusText">Online</span>
+                    </div>
+                    <span class="time-display" id="timeDisplay"></span>
+                </div>
+            </div>
+            <div class="content">
+                @yield('content')
+            </div>
+        </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        // Auto-detect offline/online status
-        function updateConnectionStatus() {
-            const statusDot = document.getElementById('statusDot');
-            const statusText = document.getElementById('statusText');
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
             
-            if (navigator.onLine) {
-                statusDot.className = 'status-dot online';
-                statusText.textContent = 'Online';
-                statusText.style.color = '#28a745';
+            if (window.innerWidth <= 576) {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('show');
             } else {
-                statusDot.className = 'status-dot offline';
-                statusText.textContent = 'Offline';
-                statusText.style.color = '#dc3545';
+                sidebar.classList.toggle('collapsed');
+                document.querySelector('.main-content').classList.toggle('expanded');
             }
         }
 
-        updateConnectionStatus();
-        window.addEventListener('online', updateConnectionStatus);
-        window.addEventListener('offline', updateConnectionStatus);
-
-        // Sidebar toggle for mobile
-        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
-            document.getElementById('sidebar').classList.toggle('show');
-        });
-
-        // Close sidebar on outside click
-        document.addEventListener('click', function(e) {
-            const sidebar = document.getElementById('sidebar');
-            const toggle = document.getElementById('sidebarToggle');
-            if (window.innerWidth <= 768) {
-                if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
-                    sidebar.classList.remove('show');
-                }
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 576) {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebarOverlay').classList.remove('show');
             }
         });
 
-        // Global Search
-        let searchTimeout;
+        function updateQueueBadge() {
+            fetch('/barista/queue-data')
+                .then(response => response.json())
+                .then(data => {
+                    const total = (data.in_store?.pending?.length || 0) + 
+                                 (data.online?.pending?.length || 0);
+                    const badge = document.getElementById('queueBadge');
+                    if (badge) {
+                        badge.textContent = total;
+                        badge.style.display = total > 0 ? 'inline' : 'none';
+                    }
+                })
+                .catch(() => {});
+        }
 
-        function handleSearch(query) {
-            const resultsContainer = document.getElementById('searchResults');
+        function checkConnection() {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            
+            if (navigator.onLine) {
+                dot.className = 'dot online';
+                text.className = 'status-text online';
+                text.textContent = 'Online';
+            } else {
+                dot.className = 'dot offline';
+                text.className = 'status-text offline';
+                text.textContent = 'Offline';
+            }
+        }
+
+        window.addEventListener('online', checkConnection);
+        window.addEventListener('offline', checkConnection);
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('timeDisplay').textContent = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true 
+            });
+        }
+
+        // Search
+        let searchTimeout = null;
+        const searchInput = document.getElementById('globalSearch');
+        const searchResults = document.getElementById('searchResults');
+        const searchClear = document.getElementById('searchClear');
+
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            if (searchTimeout) clearTimeout(searchTimeout);
             
             if (query.length < 2) {
-                resultsContainer.classList.remove('show');
+                searchResults.classList.remove('show');
+                searchClear.style.display = 'none';
                 return;
             }
-
-            clearTimeout(searchTimeout);
+            
+            searchClear.style.display = 'block';
+            
             searchTimeout = setTimeout(() => {
                 fetch(`/search?q=${encodeURIComponent(query)}`)
                     .then(response => response.json())
                     .then(data => {
-                        renderSearchResults(data, query);
+                        renderSearchResults(data);
                     })
                     .catch(() => {
-                        resultsContainer.innerHTML = '<div class="no-results">Error searching</div>';
-                        resultsContainer.classList.add('show');
+                        searchResults.innerHTML = `
+                            <div class="no-results">
+                                <i class="fas fa-exclamation-circle"></i>
+                                Error searching. Please try again.
+                            </div>
+                        `;
+                        searchResults.classList.add('show');
                     });
             }, 300);
-        }
+        });
 
-        function renderSearchResults(data, query) {
-            const container = document.getElementById('searchResults');
+        function renderSearchResults(data) {
+            const results = searchResults;
+            results.innerHTML = '';
             
-            if (data.length === 0) {
-                container.innerHTML = `<div class="no-results">No results found for "<strong>${query}</strong>"</div>`;
-                container.classList.add('show');
-                return;
+            let hasResults = false;
+
+            if (data.products && data.products.length > 0) {
+                hasResults = true;
+                results.innerHTML += `<div class="result-group">📦 Products</div>`;
+                data.products.forEach(item => {
+                    results.innerHTML += `
+                        <div class="result-item" onclick="window.location.href='/products/${item.id}'">
+                            <div class="result-icon"><i class="fas fa-box"></i></div>
+                            <div class="result-info">
+                                <div class="result-title">${item.name}</div>
+                                <div class="result-sub">₱${parseFloat(item.price).toFixed(2)}</div>
+                            </div>
+                            <span class="result-badge product">Product</span>
+                        </div>
+                    `;
+                });
             }
 
-            let html = '';
-            data.forEach(item => {
-                const iconMap = {
-                    'product': 'fa-box',
-                    'customer': 'fa-user',
-                    'branch': 'fa-store',
-                    'staff': 'fa-user-tie',
-                    'item': 'fa-boxes',
-                    'sale': 'fa-receipt',
-                    'order': 'fa-clock'
-                };
-                const colorMap = {
-                    'product': '#6F4E37',
-                    'customer': '#0d6efd',
-                    'branch': '#28a745',
-                    'staff': '#6c757d',
-                    'item': '#ffc107',
-                    'sale': '#17a2b8',
-                    'order': '#fd7e14'
-                };
-                const icon = iconMap[item.type] || 'fa-search';
-                const color = colorMap[item.type] || '#6F4E37';
-                
-                html += `
-                    <a href="${item.url}" class="result-item">
-                        <div class="result-icon" style="background: ${color}20; color: ${color};">
-                            <i class="fas ${icon}"></i>
+            if (data.customers && data.customers.length > 0) {
+                hasResults = true;
+                results.innerHTML += `<div class="result-group">👤 Customers</div>`;
+                data.customers.forEach(item => {
+                    results.innerHTML += `
+                        <div class="result-item" onclick="window.location.href='/customers/${item.id}'">
+                            <div class="result-icon"><i class="fas fa-user"></i></div>
+                            <div class="result-info">
+                                <div class="result-title">${item.name}</div>
+                                <div class="result-sub">${item.email || item.customer_code || ''}</div>
+                            </div>
+                            <span class="result-badge customer">Customer</span>
                         </div>
-                        <div class="result-info">
-                            <div class="result-title">${item.title}</div>
-                            <div class="result-sub">${item.subtitle || ''}</div>
+                    `;
+                });
+            }
+
+            if (data.orders && data.orders.length > 0) {
+                hasResults = true;
+                results.innerHTML += `<div class="result-group">📋 Orders</div>`;
+                data.orders.forEach(item => {
+                    results.innerHTML += `
+                        <div class="result-item" onclick="window.location.href='/pos/receipt/${item.id}'">
+                            <div class="result-icon"><i class="fas fa-receipt"></i></div>
+                            <div class="result-info">
+                                <div class="result-title">Order #${item.id}</div>
+                                <div class="result-sub">₱${parseFloat(item.total).toFixed(2)}</div>
+                            </div>
+                            <span class="result-badge order">Order</span>
                         </div>
-                        <span class="result-badge">${item.type}</span>
-                    </a>
+                    `;
+                });
+            }
+
+            if (data.staff && data.staff.length > 0) {
+                hasResults = true;
+                results.innerHTML += `<div class="result-group">👥 Staff</div>`;
+                data.staff.forEach(item => {
+                    results.innerHTML += `
+                        <div class="result-item" onclick="window.location.href='/staff/${item.id}'">
+                            <div class="result-icon"><i class="fas fa-user-tie"></i></div>
+                            <div class="result-info">
+                                <div class="result-title">${item.name}</div>
+                                <div class="result-sub">${item.email}</div>
+                            </div>
+                            <span class="result-badge staff">Staff</span>
+                        </div>
+                    `;
+                });
+            }
+
+            if (data.branches && data.branches.length > 0) {
+                hasResults = true;
+                results.innerHTML += `<div class="result-group">🏪 Branches</div>`;
+                data.branches.forEach(item => {
+                    results.innerHTML += `
+                        <div class="result-item" onclick="window.location.href='/branches/${item.id}'">
+                            <div class="result-icon"><i class="fas fa-store"></i></div>
+                            <div class="result-info">
+                                <div class="result-title">${item.name}</div>
+                                <div class="result-sub">${item.address || ''}</div>
+                            </div>
+                            <span class="result-badge branch">Branch</span>
+                        </div>
+                    `;
+                });
+            }
+
+            if (data.inventory && data.inventory.length > 0) {
+                hasResults = true;
+                results.innerHTML += `<div class="result-group">📦 Inventory</div>`;
+                data.inventory.forEach(item => {
+                    results.innerHTML += `
+                        <div class="result-item" onclick="window.location.href='/inventory'">
+                            <div class="result-icon"><i class="fas fa-boxes"></i></div>
+                            <div class="result-info">
+                                <div class="result-title">${item.name}</div>
+                                <div class="result-sub">${item.quantity || 0} in stock</div>
+                            </div>
+                            <span class="result-badge inventory">Inventory</span>
+                        </div>
+                    `;
+                });
+            }
+
+            if (!hasResults) {
+                results.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-search"></i>
+                        No results found for "<strong>${searchInput.value}</strong>"
+                    </div>
                 `;
-            });
+            }
 
-            html += `
-                <div class="search-more">
-                    <a href="{{ route('search.results') }}?q=${encodeURIComponent(query)}">View all results →</a>
-                </div>
-            `;
-
-            container.innerHTML = html;
-            container.classList.add('show');
+            results.classList.add('show');
         }
 
-        // Close search results on outside click
+        function clearSearch() {
+            searchInput.value = '';
+            searchResults.classList.remove('show');
+            searchClear.style.display = 'none';
+            searchInput.focus();
+        }
+
         document.addEventListener('click', function(e) {
-            const searchBox = document.querySelector('.search-box');
-            if (searchBox && !searchBox.contains(e.target)) {
-                document.getElementById('searchResults').classList.remove('show');
+            const container = document.querySelector('.search-container');
+            if (container && !container.contains(e.target)) {
+                searchResults.classList.remove('show');
             }
         });
 
-        // Keyboard shortcut: Ctrl+K or Cmd+K
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
                 document.getElementById('globalSearch').focus();
             }
             if (e.key === 'Escape') {
-                document.getElementById('globalSearch').blur();
-                document.getElementById('searchResults').classList.remove('show');
+                clearSearch();
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateQueueBadge();
+            checkConnection();
+            updateTime();
+            
+            setInterval(updateQueueBadge, 30000);
+            setInterval(checkConnection, 10000);
+            setInterval(updateTime, 1000);
         });
     </script>
     @stack('scripts')
