@@ -522,24 +522,19 @@
                 <i class="fas fa-chart-pie"></i>
                 <span>Dashboard</span>
             </a>
-
-            <!-- OPERATIONS - Visible to ALL -->
-            <div class="nav-section">Operations</div>
-            <a href="{{ route('staff.dashboard') }}" class="nav-link {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}">
-                <i class="fas fa-clipboard-list"></i>
-                <span>Staff Dashboard</span>
-            </a>
-            
-            <a href="{{ route('pos.index') }}" class="nav-link {{ request()->routeIs('pos.*') ? 'active' : '' }}">
-                <i class="fas fa-cash-register"></i>
-                <span>Point of Sale</span>
-            </a>
-            
-            <a href="{{ route('barista.queue') }}" class="nav-link {{ request()->routeIs('barista.*') ? 'active' : '' }}">
-                <i class="fas fa-clock"></i>
-                <span>Order Queue</span>
-                <span class="badge" id="queueBadge">0</span>
-            </a>
+                 
+            @if($isStaff)
+                <a href="{{ route('pos.index') }}" class="nav-link {{ request()->routeIs('pos.*') ? 'active' : '' }}">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Point of Sale</span>
+                </a>
+                
+                <a href="{{ route('barista.queue') }}" class="nav-link {{ request()->routeIs('barista.*') ? 'active' : '' }}">
+                    <i class="fas fa-clock"></i>
+                    <span>Order Queue</span>
+                    <span class="badge" id="queueBadge">0</span>
+                </a>
+            @endif
 
             <!-- INVENTORY - Visible to ALL -->
             <div class="nav-section">Inventory</div>
@@ -595,10 +590,7 @@
                     <i class="fas fa-chart-bar"></i>
                     <span>Reports</span>
                 </a>
-                <a href="{{ route('sync.index') }}" class="nav-link {{ request()->routeIs('sync.*') ? 'active' : '' }}">
-                    <i class="fas fa-sync"></i>
-                    <span>Sync</span>
-                </a>
+                
             @endif
 
             <!-- SYSTEM - Admin ONLY -->
@@ -778,7 +770,7 @@
 
             if (data.products && data.products.length > 0) {
                 hasResults = true;
-                results.innerHTML += `<div class="result-group">📦 Products</div>`;
+                results.innerHTML += `<div class="result-group">Products</div>`;
                 data.products.forEach(item => {
                     results.innerHTML += `
                         <div class="result-item" onclick="window.location.href='/products/${item.id}'">
@@ -795,7 +787,7 @@
 
             if (data.customers && data.customers.length > 0) {
                 hasResults = true;
-                results.innerHTML += `<div class="result-group">👤 Customers</div>`;
+                results.innerHTML += `<div class="result-group">Customers</div>`;
                 data.customers.forEach(item => {
                     results.innerHTML += `
                         <div class="result-item" onclick="window.location.href='/customers/${item.id}'">
@@ -812,7 +804,7 @@
 
             if (data.orders && data.orders.length > 0) {
                 hasResults = true;
-                results.innerHTML += `<div class="result-group">📋 Orders</div>`;
+                results.innerHTML += `<div class="result-group">Orders</div>`;
                 data.orders.forEach(item => {
                     results.innerHTML += `
                         <div class="result-item" onclick="window.location.href='/pos/receipt/${item.id}'">
@@ -829,7 +821,7 @@
 
             if (data.staff && data.staff.length > 0) {
                 hasResults = true;
-                results.innerHTML += `<div class="result-group">👥 Staff</div>`;
+                results.innerHTML += `<div class="result-group">Staff</div>`;
                 data.staff.forEach(item => {
                     results.innerHTML += `
                         <div class="result-item" onclick="window.location.href='/staff/${item.id}'">
@@ -846,7 +838,7 @@
 
             if (data.branches && data.branches.length > 0) {
                 hasResults = true;
-                results.innerHTML += `<div class="result-group">🏪 Branches</div>`;
+                results.innerHTML += `<div class="result-group">Branches</div>`;
                 data.branches.forEach(item => {
                     results.innerHTML += `
                         <div class="result-item" onclick="window.location.href='/branches/${item.id}'">
@@ -863,7 +855,7 @@
 
             if (data.inventory && data.inventory.length > 0) {
                 hasResults = true;
-                results.innerHTML += `<div class="result-group">📦 Inventory</div>`;
+                results.innerHTML += `<div class="result-group">Inventory</div>`;
                 data.inventory.forEach(item => {
                     results.innerHTML += `
                         <div class="result-item" onclick="window.location.href='/inventory'">

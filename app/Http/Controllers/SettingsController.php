@@ -13,7 +13,8 @@ class SettingsController extends Controller
     {
         // Get current settings
         $settings = $this->getSettings();
-        return view('admin.settings', compact('settings'));
+        $qrLogoExists = Storage::disk('public')->exists('qr-logo.png');
+        return view('admin.settings', compact('settings', 'qrLogoExists'));
     }
 
     private function getSettings()
@@ -41,10 +42,7 @@ class SettingsController extends Controller
                 'brand_tagline' => 'nullable|string|max:100',
             ]);
 
-            // Save brand name
             Storage::disk('public')->put('settings/brand_name.txt', $request->brand_name);
-            
-            // Save brand tagline
             Storage::disk('public')->put('settings/brand_tagline.txt', $request->brand_tagline ?? '');
 
             return response()->json([
@@ -70,19 +68,14 @@ class SettingsController extends Controller
                 'logo' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120'
             ]);
 
-            // Delete old logo
             if (Storage::disk('public')->exists('settings/logo.png')) {
                 Storage::disk('public')->delete('settings/logo.png');
             }
 
-            // Get the uploaded file and save directly
             $image = $request->file('logo');
             $imageName = 'logo.png';
-            
-            // Save the image directly to storage
             $image->storeAs('settings', $imageName, 'public');
 
-            // Get final logo path
             $logoPath = Storage::url('settings/' . $imageName);
 
             return response()->json([

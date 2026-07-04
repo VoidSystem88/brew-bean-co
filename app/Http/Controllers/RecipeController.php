@@ -13,7 +13,8 @@ class RecipeController extends Controller
     public function index()
     {
         $recipes = Recipe::with(['product', 'item'])->get();
-        return view('recipes.index', compact('recipes'));
+        $products = Product::orderBy('name')->get();
+        return view('recipes.index', compact('recipes', 'products'));
     }
 
     public function create()

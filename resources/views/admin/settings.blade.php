@@ -180,11 +180,6 @@
         display: block;
     }
     
-    .cropper-container {
-        width: 100% !important;
-        height: 100% !important;
-    }
-    
     .crop-instructions {
         font-size: 13px;
         color: #666;
@@ -197,6 +192,28 @@
     .crop-instructions i {
         color: #6F4E37;
         margin-right: 6px;
+    }
+    
+    .qr-logo-preview {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 2px solid #e8e8e8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #f8f6f4;
+        flex-shrink: 0;
+    }
+    .qr-logo-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .qr-logo-preview .placeholder {
+        color: #ccc;
+        font-size: 28px;
     }
     
     @media (max-width: 576px) {
@@ -330,6 +347,36 @@
             </div>
         </div>
     </div>
+
+    <!-- QR Code Settings -->
+    <div class="settings-card">
+        <h5 class="mb-3"><i class="fas fa-qrcode me-2" style="color:#6F4E37;"></i>QR Code Settings</h5>
+        <p class="text-muted" style="font-size:13px;">Customize your QR code with your store logo. This QR code will be used for customer checkout.</p>
+        
+        <div class="d-flex align-items-center gap-3">
+            <div class="qr-logo-preview">
+                @php
+                    $qrLogoExists = Storage::disk('public')->exists('qr-logo.png');
+                    $qrLogoPath = $qrLogoExists ? asset('storage/qr-logo.png') : null;
+                @endphp
+                @if($qrLogoExists)
+                    <img src="{{ $qrLogoPath }}" alt="QR Logo">
+                @else
+                    <span class="placeholder"><i class="fas fa-qrcode"></i></span>
+                @endif
+            </div>
+            <div>
+                <div class="mb-1">
+                    <span class="badge {{ $qrLogoExists ? 'bg-success' : 'bg-secondary' }}">
+                        {{ $qrLogoExists ? 'Logo Set' : 'No Logo' }}
+                    </span>
+                </div>
+                <a href="{{ route('qr.settings') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-cog me-1"></i> Manage QR Settings
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 
 @push('scripts')
@@ -347,7 +394,7 @@
         const msg = document.getElementById('brandMessage');
         
         if (!name) {
-            msg.innerHTML = '<span style="color:#dc3545;">❌ Brand name is required</span>';
+            msg.innerHTML = '<span style="color:#dc3545;"> Brand name is required</span>';
             return;
         }
         
@@ -372,25 +419,18 @@
             btn.innerHTML = '<i class="fas fa-save me-2"></i> Save Brand';
             
             if (data.success) {
-                // Update preview
                 document.getElementById('previewBrandName').textContent = data.brand_name;
                 document.getElementById('previewBrandTagline').textContent = data.brand_tagline || '';
-                
-                // Update sidebar (reload page to update sidebar)
-                msg.innerHTML = '<span style="color:#28a745;">✅ ' + data.message + '</span>';
-                
-                // Reload after 1 second to update sidebar
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+                msg.innerHTML = '<span style="color:#28a745;"> ' + data.message + '</span>';
+                setTimeout(() => { location.reload(); }, 1000);
             } else {
-                msg.innerHTML = '<span style="color:#dc3545;">❌ ' + data.message + '</span>';
+                msg.innerHTML = '<span style="color:#dc3545;"> ' + data.message + '</span>';
             }
         })
         .catch(error => {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-save me-2"></i> Save Brand';
-            msg.innerHTML = '<span style="color:#dc3545;">❌ Error saving brand</span>';
+            msg.innerHTML = '<span style="color:#dc3545;"> Error saving brand</span>';
         });
     }
 
@@ -471,7 +511,7 @@
         reader.readAsDataURL(file);
     });
 
-    window.saveCroppedLogo = function() {
+    function saveCroppedLogo() {
         if (!cropper || !selectedFile) {
             alert('Please select an image first.');
             return;
@@ -517,15 +557,14 @@
                 `;
                 document.getElementById('logoInput').value = '';
                 
-                // Update sidebar preview
                 const sidebarLogo = document.querySelector('.preview-logo');
                 if (sidebarLogo) {
                     sidebarLogo.innerHTML = `<img src="${data.path}?_=${Date.now()}" alt="Logo">`;
                 }
                 
-                alert('✅ ' + data.message);
+                alert(' ' + data.message);
             } else {
-                alert('❌ ' + data.message);
+                alert(' ' + data.message);
             }
         })
         .catch(error => {
@@ -533,9 +572,9 @@
             btn.innerHTML = '<i class="fas fa-check"></i> Save Logo';
             alert('Error uploading logo: ' + error);
         });
-    };
+    }
 
-    window.removeLogo = function() {
+    function removeLogo() {
         if (!confirm('Remove the current logo?')) return;
 
         fetch('{{ route("admin.settings.logo.remove") }}', {
@@ -558,21 +597,20 @@
                 document.getElementById('removeLogoBtn').style.display = 'none';
                 document.getElementById('logoInfo').innerHTML = '';
                 
-                // Update sidebar preview
                 const sidebarLogo = document.querySelector('.preview-logo');
                 if (sidebarLogo) {
                     sidebarLogo.innerHTML = `<div class="placeholder"><i class="fas fa-store"></i></div>`;
                 }
                 
-                alert('✅ ' + data.message);
+                alert(' ' + data.message);
             } else {
-                alert('❌ ' + data.message);
+                alert(' ' + data.message);
             }
         })
         .catch(error => {
             alert('Error removing logo: ' + error);
         });
-    };
+    }
 
     document.getElementById('cropModal').addEventListener('hidden.bs.modal', function() {
         if (cropper) {
@@ -581,7 +619,6 @@
         }
     });
 
-    // ===== INIT =====
     document.addEventListener('DOMContentLoaded', function() {
         loadLogo();
     });

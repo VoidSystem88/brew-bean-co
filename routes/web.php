@@ -198,4 +198,16 @@ Route::get('/supplier/approve/{token}', [SupplierApprovalController::class, 'app
 Route::post('/supplier/approve/{token}', [SupplierApprovalController::class, 'approve']);
 Route::get('/supplier/reject/{token}', [SupplierApprovalController::class, 'reject'])->name('supplier.reject');
 Route::post('/supplier/reject/{token}', [SupplierApprovalController::class, 'reject']);
+Route::get('/customer/available-discounts', [CustomerAuthController::class, 'getAvailableDiscountsAjax'])->name('customer.available-discounts');
+Route::post('/customer/redeem-discount', [CustomerAuthController::class, 'redeemDiscount'])->name('customer.redeem-discount');
+Route::get('/customer/use-voucher/{id}', [CustomerAuthController::class, 'useVoucher'])->name('customer.use-voucher');
+Route::post('/customer/remove-voucher', [CustomerAuthController::class, 'removeVoucher'])->name('customer.remove-voucher');
+Route::get('/admin/qr-settings', [App\Http\Controllers\QrSettingsController::class, 'index'])->name('qr.settings')->middleware('role:admin');
+Route::post('/admin/qr/upload-logo', [App\Http\Controllers\QrSettingsController::class, 'uploadLogo'])->name('qr.upload-logo')->middleware('role:admin');
+Route::delete('/admin/qr/remove-logo', [App\Http\Controllers\QrSettingsController::class, 'removeLogo'])->name('qr.remove-logo')->middleware('role:admin');
+Route::get('/admin/qr/preview', [App\Http\Controllers\QrSettingsController::class, 'preview'])->name('qr.preview')->middleware('role:admin');
+Route::get('/admin/qr/download', [App\Http\Controllers\QrSettingsController::class, 'download'])->name('qr.download')->middleware('role:admin');
 Route::get('/supplier/view/{token}', [SupplierApprovalController::class, 'view'])->name('supplier.view');
+
+
+

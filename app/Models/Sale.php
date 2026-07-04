@@ -18,8 +18,14 @@ class Sale extends Model
         'original_amount',
         'discount_amount',
         'discount_rate',
+        'delivery_fee',
+        'delivery_distance_km',
         'sale_date',
         'sync_status',
+        'order_status',
+        'payment_method',
+        'amount_paid',
+        'change_amount',
         'delivery_address',
         'delivery_status',
         'order_notes',
@@ -27,6 +33,8 @@ class Sale extends Model
 
     protected $casts = [
         'sale_date' => 'datetime',
+        'delivery_fee' => 'decimal:2',
+        'delivery_distance_km' => 'decimal:2',
     ];
 
     public function branch()

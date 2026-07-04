@@ -19,212 +19,8 @@ use Illuminate\Support\Facades\Log;
 
 class CustomerAuthController extends Controller
 {
-    private const DELIVERY_RATE_PER_KM = 10;
+    private const DELIVERY_RATE_PER_KM = 10; // ₱10 per km
 
-    // ============= POINTS DISCOUNT SYSTEM =============
-    private function getAvailableDiscounts($points, $subtotal = 0)
-    {
-        $discounts = [
-            [
-                'id' => 'small', 
-                'points' => 50, 
-                'value' => 20, 
-                'label' => 'Small Discount',
-                'min_purchase' => 100,
-                'icon' => 'fa-coffee',
-                'color' => '#6F8A6F'
-            ],
-            [
-                'id' => 'medium', 
-                'points' => 100, 
-                'value' => 50, 
-                'label' => 'Medium Discount',
-                'min_purchase' => 200,
-                'icon' => 'fa-mug-hot',
-                'color' => '#5A7A8A'
-            ],
-            [
-                'id' => 'large', 
-                'points' => 200, 
-                'value' => 100, 
-                'label' => 'Large Discount',
-                'min_purchase' => 400,
-                'icon' => 'fa-crown',
-                'color' => '#B8974A'
-            ],
-            [
-                'id' => 'premium', 
-                'points' => 400, 
-                'value' => 200, 
-                'label' => 'Premium Discount',
-                'min_purchase' => 800,
-                'icon' => 'fa-gem',
-                'color' => '#7A5A8A'
-            ],
-            [
-                'id' => 'vip', 
-                'points' => 800, 
-                'value' => 500, 
-                'label' => 'VIP Discount',
-                'min_purchase' => 1500,
-                'icon' => 'fa-star',
-                'color' => '#8A5A4A'
-            ],
-        ];
-        
-        $available = [];
-        foreach ($discounts as $discount) {
-            if ($points >= $discount['points'] && $subtotal >= $discount['min_purchase']) {
-                $available[] = $discount;
-            }
-        }
-        
-        return $available;
-    }
-
-    public function getAvailableDiscountsAjax(Request $request)
-    {
-        $customer = Auth::guard('customer')->user();
-        $subtotal = $request->subtotal ?? 0;
-        
-        $discounts = $this->getAvailableDiscounts($customer->loyalty_points ?? 0, $subtotal);
-        
-        return response()->json([
-            'success' => true,
-            'discounts' => $discounts,
-            'points' => $customer->loyalty_points ?? 0
-        ]);
-    }
-
-    // ============= LOYALTY POINTS =============
-    public function loyaltyPoints()
-    {
-        $customer = Auth::guard('customer')->user();
-        
-        if (!$customer) {
-            return redirect()->route('customer.login');
-        }
-
-        $currentPoints = $customer->loyalty_points ?? 0;
-        
-        $tiers = [
-            ['points' => 0, 'discount' => 0, 'label' => 'Bronze', 'color' => '#cd7f32'],
-            ['points' => 100, 'discount' => 5, 'label' => 'Silver', 'color' => '#c0c0c0'],
-            ['points' => 250, 'discount' => 10, 'label' => 'Gold', 'color' => '#ffd700'],
-            ['points' => 500, 'discount' => 15, 'label' => 'Platinum', 'color' => '#e5e4e2'],
-            ['points' => 1000, 'discount' => 20, 'label' => 'Diamond', 'color' => '#b9f2ff'],
-        ];
-
-        $currentTier = $tiers[0];
-        $nextTier = null;
-        
-        foreach ($tiers as $index => $tier) {
-            if ($currentPoints >= $tier['points']) {
-                $currentTier = $tier;
-                if (isset($tiers[$index + 1])) {
-                    $nextTier = $tiers[$index + 1];
-                }
-            }
-        }
-
-        $pointsHistory = $customer->sales()
-            ->where('total_amount', '>', 0)
-            ->select('id', 'total_amount', 'sale_date', 'discount_rate', 'discount_type', 'points_used', 'discount_amount')
-            ->orderBy('sale_date', 'desc')
-            ->limit(20)
-            ->get();
-
-        foreach ($pointsHistory as $sale) {
-            $sale->points_earned = floor($sale->total_amount / 100);
-            if ($sale->points_used) {
-                $sale->points_net = $sale->points_earned - $sale->points_used;
-            } else {
-                $sale->points_net = $sale->points_earned;
-            }
-        }
-
-        $availableDiscounts = $this->getAvailableDiscounts($currentPoints, 0);
-        
-        $allVouchers = [
-            ['id' => 'small', 'points' => 50, 'value' => 20, 'label' => 'Small Discount', 'min_purchase' => 100, 'icon' => 'fa-coffee', 'color' => '#6F8A6F'],
-            ['id' => 'medium', 'points' => 100, 'value' => 50, 'label' => 'Medium Discount', 'min_purchase' => 200, 'icon' => 'fa-mug-hot', 'color' => '#5A7A8A'],
-            ['id' => 'large', 'points' => 200, 'value' => 100, 'label' => 'Large Discount', 'min_purchase' => 400, 'icon' => 'fa-crown', 'color' => '#B8974A'],
-            ['id' => 'premium', 'points' => 400, 'value' => 200, 'label' => 'Premium Discount', 'min_purchase' => 800, 'icon' => 'fa-gem', 'color' => '#7A5A8A'],
-            ['id' => 'vip', 'points' => 800, 'value' => 500, 'label' => 'VIP Discount', 'min_purchase' => 1500, 'icon' => 'fa-star', 'color' => '#8A5A4A'],
-        ];
-
-        return view('customer.loyalty', compact(
-            'customer', 'currentPoints', 'tiers', 'currentTier', 
-            'nextTier', 'pointsHistory', 'availableDiscounts', 'allVouchers'
-        ));
-    }
-
-    // ============= VOUCHER SYSTEM =============
-    public function useVoucher($discountId)
-    {
-        $customer = Auth::guard('customer')->user();
-        
-        if (!$customer) {
-            return redirect()->route('customer.login')
-                ->with('error', 'Please login first.');
-        }
-
-        $allVouchers = [
-            ['id' => 'small', 'points' => 50, 'value' => 20, 'label' => 'Small Discount', 'min_purchase' => 100],
-            ['id' => 'medium', 'points' => 100, 'value' => 50, 'label' => 'Medium Discount', 'min_purchase' => 200],
-            ['id' => 'large', 'points' => 200, 'value' => 100, 'label' => 'Large Discount', 'min_purchase' => 400],
-            ['id' => 'premium', 'points' => 400, 'value' => 200, 'label' => 'Premium Discount', 'min_purchase' => 800],
-            ['id' => 'vip', 'points' => 800, 'value' => 500, 'label' => 'VIP Discount', 'min_purchase' => 1500],
-        ];
-        
-        $selected = collect($allVouchers)->firstWhere('id', $discountId);
-
-        if (!$selected) {
-            return redirect()->route('customer.loyalty')
-                ->with('error', 'Voucher not available.');
-        }
-
-        if ($customer->loyalty_points < $selected['points']) {
-            return redirect()->route('customer.loyalty')
-                ->with('error', 'Not enough points to redeem this voucher.');
-        }
-
-        if (session('active_voucher')) {
-            return redirect()->route('customer.loyalty')
-                ->with('error', 'You already have an active voucher.');
-        }
-
-        $customer->loyalty_points -= $selected['points'];
-        $customer->save();
-
-        session(['active_voucher' => $selected]);
-
-        return redirect()->route('customer.dashboard')
-            ->with('success', 'Voucher activated! Use it on your next order.');
-    }
-
-    public function removeVoucher(Request $request)
-    {
-        $voucher = session('active_voucher');
-        
-        if ($voucher) {
-            $customer = Auth::guard('customer')->user();
-            if ($customer) {
-                $customer->loyalty_points += $voucher['points'];
-                $customer->save();
-            }
-            
-            session()->forget('active_voucher');
-            
-            return redirect()->route('customer.loyalty')
-                ->with('success', 'Voucher removed. Points refunded.');
-        }
-        
-        return redirect()->route('customer.loyalty')
-            ->with('error', 'No active voucher to remove.');
-    }
-
-    // ============= EXISTING METHODS =============
     public function showLoginForm()
     {
         return view('customer.auth.login');
@@ -326,7 +122,8 @@ class CustomerAuthController extends Controller
             session(['selected_branch_id' => $selectedBranchId]);
         }
 
-        $products = Product::orderBy('name')->get();
+        // Eager-load recipes.item para maiwasan ang N+1 queries sa loop sa ibaba
+        $products = Product::with('recipes.item')->orderBy('name')->get();
         
         foreach ($products as $product) {
             if ($product->recipes->isEmpty()) {
@@ -394,6 +191,7 @@ class CustomerAuthController extends Controller
             $stockQty = $branchStock->stock_quantity ?? 0;
             $itemName = $recipe->item->name ?? 'Unknown';
 
+            // Convert stock unit to recipe unit (same as POS)
             $availableInRecipeUnit = UnitConverter::convert(
                 $stockQty,
                 $recipe->item->unit ?? 'g',
@@ -463,6 +261,52 @@ class CustomerAuthController extends Controller
         
         return redirect()->route('customer.dashboard')
             ->with('success', 'Switched to selected branch');
+    }
+
+    public function loyaltyPoints()
+    {
+        $customer = Auth::guard('customer')->user();
+        
+        if (!$customer) {
+            return redirect()->route('customer.login');
+        }
+
+        $currentPoints = $customer->loyalty_points ?? 0;
+        
+        $tiers = [
+            ['points' => 0, 'discount' => 0, 'label' => 'Bronze', 'color' => '#cd7f32'],
+            ['points' => 100, 'discount' => 5, 'label' => 'Silver', 'color' => '#c0c0c0'],
+            ['points' => 250, 'discount' => 10, 'label' => 'Gold', 'color' => '#ffd700'],
+            ['points' => 500, 'discount' => 15, 'label' => 'Platinum', 'color' => '#e5e4e2'],
+            ['points' => 1000, 'discount' => 20, 'label' => 'Diamond', 'color' => '#b9f2ff'],
+        ];
+
+        $currentTier = $tiers[0];
+        $nextTier = null;
+        
+        foreach ($tiers as $index => $tier) {
+            if ($currentPoints >= $tier['points']) {
+                $currentTier = $tier;
+                if (isset($tiers[$index + 1])) {
+                    $nextTier = $tiers[$index + 1];
+                }
+            }
+        }
+
+        $pointsHistory = $customer->sales()
+            ->where('total_amount', '>', 0)
+            ->select('id', 'total_amount', 'sale_date', 'discount_rate')
+            ->orderBy('sale_date', 'desc')
+            ->limit(20)
+            ->get();
+
+        foreach ($pointsHistory as $sale) {
+            $sale->points_earned = floor($sale->total_amount / 100);
+        }
+
+        return view('customer.loyalty', compact(
+            'customer', 'currentPoints', 'tiers', 'currentTier', 'nextTier', 'pointsHistory'
+        ));
     }
 
     public function profile()
@@ -565,32 +409,58 @@ class CustomerAuthController extends Controller
     }
 
     public function getBranchesNearby(Request $request)
-    {
-        $lat = $request->lat;
-        $lng = $request->lng;
-        
-        $branches = Branch::where('is_active', true)->get();
-        
-        foreach ($branches as $branch) {
-            if ($branch->latitude && $branch->longitude) {
-                $distance = $this->calculateDistance($lat, $lng, $branch->latitude, $branch->longitude);
-                $branch->distance = round($distance, 2);
-                $branch->distance_text = $this->formatDistance($distance);
-            } else {
-                $branch->distance = null;
-                $branch->distance_text = 'N/A';
-            }
+{
+    $lat = $request->lat;
+    $lng = $request->lng;
+    
+    $branches = Branch::where('is_active', true)->get();
+    
+    foreach ($branches as $branch) {
+        if ($branch->latitude && $branch->longitude) {
+            $distance = $this->calculateDistance($lat, $lng, $branch->latitude, $branch->longitude);
+            $branch->distance = round($distance, 2);
+            $branch->distance_text = $this->formatDistance($distance);
+        } else {
+            $branch->distance = null;
+            $branch->distance_text = 'N/A';
         }
-        
-        $branches = $branches->sortBy('distance')->values();
-        $nearest = $branches->first();
-        
-        return response()->json([
-            'branches' => $branches,
-            'nearest' => $nearest,
-            'user_lat' => $lat,
-            'user_lng' => $lng
-        ]);
+    }
+    
+    // Sort by distance - nearest first
+    $branches = $branches->sortBy('distance')->values();
+    $nearest = $branches->first();
+    
+    return response()->json([
+        'branches' => $branches,
+        'nearest' => $nearest,
+        'user_lat' => $lat,
+        'user_lng' => $lng
+    ]);
+}
+
+private function formatDistance($distance)
+{
+    if ($distance < 1) {
+        return round($distance * 1000) . ' m';
+    }
+    return number_format($distance, 1) . ' km';
+}
+
+private function calculateDistance($lat1, $lon1, $lat2, $lon2)
+{
+    $earthRadius = 6371;
+    
+    $dLat = deg2rad($lat2 - $lat1);
+    $dLon = deg2rad($lon2 - $lon1);
+    
+    $a = sin($dLat/2) * sin($dLat/2) +
+         cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+         sin($dLon/2) * sin($dLon/2);
+    
+    $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+    
+    return $earthRadius * $c;
+}
     }
 
     private function formatDistance($distance)
@@ -628,8 +498,6 @@ class CustomerAuthController extends Controller
                 'is_delivery' => 'nullable|boolean',
                 'delivery_address' => 'nullable|string|max:500',
                 'notes' => 'nullable|string|max:500',
-                'use_points_discount' => 'nullable|boolean',
-                'discount_id' => 'nullable|string',
             ]);
 
             if ($validator->fails()) {
@@ -718,49 +586,7 @@ class CustomerAuthController extends Controller
                 ];
             }
 
-            // Check active voucher
-            $activeVoucher = session('active_voucher');
-            $voucherDiscount = 0;
-            $voucherLabel = '';
-
-            if ($activeVoucher && isset($activeVoucher['id'])) {
-                if ($totalAmount >= $activeVoucher['min_purchase']) {
-                    $voucherDiscount = $activeVoucher['value'];
-                    $voucherLabel = $activeVoucher['label'];
-                    session()->forget('active_voucher');
-                }
-            }
-
-            $totalAmount -= $voucherDiscount;
-
-            // Points discount
-            $usePointsDiscount = $request->boolean('use_points_discount');
-            $selectedDiscountId = $request->discount_id ?? null;
-            $discountValue = 0;
-            $discountLabel = '';
-            $pointsUsed = 0;
-            $discountType = null;
-
-            if ($usePointsDiscount && $selectedDiscountId && $customer) {
-                $availableDiscounts = $this->getAvailableDiscounts($customer->loyalty_points, $totalAmount);
-                $selected = collect($availableDiscounts)->firstWhere('id', $selectedDiscountId);
-                
-                if ($selected && $customer->loyalty_points >= $selected['points']) {
-                    if ($totalAmount >= $selected['min_purchase']) {
-                        $discountValue = $selected['value'];
-                        $pointsUsed = $selected['points'];
-                        $discountLabel = $selected['label'];
-                        $discountType = $selected['id'];
-                        
-                        $customer->loyalty_points -= $pointsUsed;
-                        $customer->save();
-                    }
-                }
-            }
-
-            $finalTotal = $totalAmount - $discountValue;
-
-            // Delivery fee
+            // ===== DELIVERY FEE COMPUTATION (server-side, hindi galing sa client) =====
             $deliveryFee = 0;
             $deliveryDistanceKm = null;
 
@@ -785,7 +611,9 @@ class CustomerAuthController extends Controller
                 $deliveryFee = round($deliveryDistanceKm * self::DELIVERY_RATE_PER_KM, 2);
             }
 
-            $finalTotal += $deliveryFee;
+            $discountRate = $this->calculateDiscount($customer->loyalty_points ?? 0);
+            $discountAmount = ($totalAmount * $discountRate) / 100;
+            $finalTotal = $totalAmount - $discountAmount + $deliveryFee;
 
             foreach ($ingredientsUsed as $itemId => $totalQty) {
                 DB::table('branch_item')
@@ -799,11 +627,9 @@ class CustomerAuthController extends Controller
                 'customer_id' => $customer->id,
                 'user_id' => null,
                 'total_amount' => $finalTotal,
-                'original_amount' => $totalAmount + $voucherDiscount,
-                'discount_amount' => $discountValue + $voucherDiscount,
-                'discount_rate' => 0,
-                'discount_type' => $discountType,
-                'points_used' => $pointsUsed,
+                'original_amount' => $totalAmount,
+                'discount_amount' => $discountAmount,
+                'discount_rate' => $discountRate,
                 'delivery_fee' => $deliveryFee,
                 'delivery_distance_km' => $deliveryDistanceKm,
                 'sale_date' => now(),
@@ -842,16 +668,13 @@ class CustomerAuthController extends Controller
                 'message' => 'Order placed successfully!',
                 'order_id' => $sale->id,
                 'total' => $finalTotal,
-                'original_total' => $totalAmount + $voucherDiscount,
-                'voucher_discount' => $voucherDiscount,
-                'voucher_label' => $voucherLabel,
-                'discount' => $discountValue,
-                'discount_label' => $discountLabel,
-                'points_used' => $pointsUsed,
-                'points_earned' => $pointsEarned,
-                'total_points' => $customer->loyalty_points,
+                'original_total' => $totalAmount,
+                'discount' => $discountAmount,
+                'discount_rate' => $discountRate,
                 'delivery_fee' => $deliveryFee,
                 'delivery_distance_km' => $deliveryDistanceKm,
+                'points_earned' => $pointsEarned,
+                'total_points' => $customer->loyalty_points,
                 'delivery_status' => $sale->delivery_status,
                 'tracking_url' => route('customer.track', $sale->id)
             ]);
@@ -947,8 +770,17 @@ class CustomerAuthController extends Controller
             $stockQty = $branchStock->stock_quantity ?? 0;
             $needed = $recipe->quantity;
             $itemName = $recipe->item->name ?? 'Unknown';
+
+            // Convert stock unit to recipe unit (tugma na sa getProductStockInBranch at placeOrder)
+            $availableInRecipeUnit = UnitConverter::convert(
+                $stockQty,
+                $recipe->item->unit ?? 'g',
+                $recipe->unit,
+                $itemName,
+                $recipe->item_id
+            );
             
-            $servingsPossible = $this->calculateServingsPossible($recipe, $stockQty);
+            $servingsPossible = $this->calculateServingsPossible($recipe, $availableInRecipeUnit);
             
             if ($servingsPossible < $maxServings) {
                 $maxServings = $servingsPossible;
@@ -959,10 +791,10 @@ class CustomerAuthController extends Controller
                 'available' => $stockQty,
                 'needed' => $needed,
                 'servings_possible' => $servingsPossible,
-                'sufficient' => $stockQty >= $needed
+                'sufficient' => $availableInRecipeUnit >= $needed
             ];
             
-            if ($stockQty < $needed) {
+            if ($availableInRecipeUnit < $needed) {
                 $available = false;
                 $missingIngredients[] = $itemName;
             }
@@ -977,3 +809,4 @@ class CustomerAuthController extends Controller
         ]);
     }
 }
+

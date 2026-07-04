@@ -69,9 +69,11 @@
                                         <a href="{{ route('customers.qr', $customer) }}" class="btn btn-sm btn-secondary" title="QR Code">
                                             <i class="fas fa-qrcode"></i>
                                         </a>
-                                        <button class="btn btn-sm btn-danger" onclick="deleteCustomer({{ $customer->id }}, '{{ $customer->name }}')" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+                                            <button class="btn btn-sm btn-danger" onclick="deleteCustomer({{ $customer->id }}, '{{ $customer->name }}')" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

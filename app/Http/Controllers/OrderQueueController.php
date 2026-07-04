@@ -50,7 +50,40 @@ class OrderQueueController extends Controller
         ];
         
         foreach ($sales as $sale) {
-            $isOnline = !empty($sale->delivery_address);
+            // CHECK: Online order if may delivery_address OR delivery_status is not null
+            // Or kung galing sa customer order (user_id is null and customer_id is not null)
+            $isOnline = false;
+            
+            // Check if this is a customer order (online)
+            if ($sale->customer_id && $sale->user_id === null) {
+                $isOnline = true;
+            }
+            
+            // Check if may delivery address
+            if (!empty($sale->delivery_address)) {
+                $isOnline = true;
+            }
+            
+            // Check if delivery_status is set
+            if ($sale->delivery_status && $sale->delivery_status !== 'completed') {
+                $isOnline = true;
+            }
+            
+            // Check if walkin_name is null and customer exists (online order)
+            if ($sale->customer_id && !$sale->walkin_name) {
+                $isOnline = true;
+            }
+            
+            // FORCE: If may customer_id at walang walkin_name, it's online
+            // If may walkin_name, it's physical
+            // If may customer_id pero from POS (may user_id), it's physical
+            if ($sale->walkin_name) {
+                $isOnline = false; // Walk-in orders are physical
+            }
+            
+            if ($sale->user_id !== null && $sale->customer_id !== null) {
+                $isOnline = false; // POS orders with customer are physical
+            }
             
             foreach ($sale->orders as $order) {
                 $status = $order->status;
@@ -74,7 +107,10 @@ class OrderQueueController extends Controller
                     'item_count' => $sale->orders->count(),
                     'time_ago' => $sale->created_at->diffForHumans(),
                     'type' => $isOnline ? 'online' : 'in-store',
-                    'order_type' => $isOnline ? 'Online' : 'In-Store'
+                    'order_type' => $isOnline ? 'Online' : 'In-Store',
+                    'is_online' => $isOnline,
+                    'has_delivery' => !empty($sale->delivery_address),
+                    'customer_type' => $sale->walkin_name ? 'Walk-in' : ($sale->customer_id ? 'Member' : 'Guest')
                 ];
                 
                 if ($isOnline) {
@@ -245,12 +281,14 @@ class OrderQueueController extends Controller
         return response()->json([
             'count' => $newOrders->count(),
             'orders' => $newOrders->map(function($sale) {
+                $isOnline = $sale->customer_id && !$sale->walkin_name;
                 return [
                     'id' => $sale->id,
                     'customer_name' => $sale->customer->name ?? $sale->walkin_name ?? 'Walk-in',
                     'total' => $sale->total_amount,
                     'created_at' => $sale->created_at->diffForHumans(),
-                    'items' => $sale->orders->count()
+                    'items' => $sale->orders->count(),
+                    'type' => $isOnline ? 'Online' : 'In-Store'
                 ];
             })
         ]);

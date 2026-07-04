@@ -4,7 +4,6 @@
 
 @section('content')
 <style>
-    /* Base Styles */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #f8f6f4; }
     
@@ -31,12 +30,7 @@
         gap: 12px;
         flex-wrap: wrap;
     }
-    .branch-selector label {
-        font-size: 13px;
-        font-weight: 600;
-        color: #333;
-        margin: 0;
-    }
+    .branch-selector label { font-size: 13px; font-weight: 600; color: #333; margin: 0; }
     .branch-selector select {
         padding: 5px 12px;
         border: 1px solid #ddd;
@@ -46,60 +40,145 @@
         flex: 1;
         min-width: 150px;
     }
-    .branch-selector select:focus {
-        border-color: #6F4E37;
-        outline: none;
-    }
+    .branch-selector select:focus { border-color: #6F4E37; outline: none; }
     .branch-selector .branch-stock-info {
         font-size: 12px;
         color: #999;
         margin-left: auto;
     }
-    .branch-selector .branch-stock-info .available-count {
-        color: #28a745;
-        font-weight: 600;
-    }
+    .branch-selector .branch-stock-info .available-count { color: #28a745; font-weight: 600; }
     
-    /* Slideshow */
     .slideshow-container {
         position: relative;
         border-radius: 12px;
         overflow: hidden;
         background: white;
         border: 1px solid #eee;
-        height: 240px;
+        height: 260px;
+        perspective: 1000px;
     }
-    .slideshow-container .slide {
-        display: none;
-        height: 100%;
-        padding: 20px 30px;
+    .slideshow-wrapper {
+        display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
+        height: 100%;
+        padding: 15px 30px;
+        gap: 15px;
+        transition: all 0.5s ease;
+    }
+    .slide-item {
+        flex: 0 0 30%;
+        height: 100%;
+        border-radius: 12px;
+        overflow: hidden;
         background: white;
+        border: 1px solid #eee;
+        transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        display: flex;
+        align-items: center;
+        padding: 15px 20px;
+        gap: 15px;
+        opacity: 0.5;
+        transform: scale(0.85) rotateY(10deg);
+        position: relative;
     }
-    .slideshow-container .slide.active { display: flex; }
-    .slideshow-container .slide .info { flex: 1; }
-    .slideshow-container .slide .info .category { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px; }
-    .slideshow-container .slide .info .name { font-size: 22px; font-weight: 600; color: #333; }
-    .slideshow-container .slide .info .price { font-size: 18px; font-weight: 600; color: #6F4E37; margin-top: 4px; }
-    .slideshow-container .slide .info .desc { font-size: 13px; color: #777; margin-top: 4px; max-width: 280px; }
-    .slideshow-container .slide .image {
-        width: 140px; height: 140px; border-radius: 50%;
+    .slide-item .slide-image {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        overflow: hidden;
         background: #f5f0eb;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 48px; color: #6F4E37;
-        flex-shrink: 0; overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        color: #6F4E37;
+        flex-shrink: 0;
     }
-    .slideshow-container .slide .image img { width: 100%; height: 100%; object-fit: cover; }
-    .slide-dots {
-        position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
-        display: flex; gap: 6px;
+    .slide-item .slide-image img { width: 100%; height: 100%; object-fit: cover; }
+    .slide-item .slide-info { flex: 1; min-width: 0; }
+    .slide-item .slide-info .category { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #999; }
+    .slide-item .slide-info .name { font-size: 14px; font-weight: 600; color: #333; }
+    .slide-item .slide-info .price { font-size: 16px; font-weight: 700; color: #6F4E37; }
+    .slide-item .slide-info .desc { font-size: 11px; color: #777; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .slide-item .btn-add-small {
+        background: #6F4E37;
+        color: white;
+        border: none;
+        padding: 4px 14px;
+        border-radius: 14px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: 0.2s;
+        margin-top: 4px;
+        white-space: nowrap;
     }
-    .slide-dots .dot {
-        width: 8px; height: 8px; border-radius: 50%;
-        background: #ddd; cursor: pointer; border: none; padding: 0;
+    .slide-item .btn-add-small:hover { background: #5a3d2b; }
+    .slide-item .btn-add-small:disabled { background: #ccc; cursor: not-allowed; }
+    
+    .slide-item.active {
+        flex: 0 0 40%;
+        opacity: 1;
+        transform: scale(1) rotateY(0deg);
+        border-color: #6F4E37;
+        box-shadow: 0 8px 30px rgba(111, 78, 55, 0.15);
+        z-index: 2;
     }
-    .slide-dots .dot.active { background: #6F4E37; width: 24px; border-radius: 4px; }
+    .slide-item.active .slide-info .name { font-size: 18px; }
+    .slide-item.active .slide-info .price { font-size: 20px; }
+    .slide-item.active .slide-image { width: 100px; height: 100px; font-size: 40px; }
+    
+    .slide-item.prev {
+        transform: scale(0.85) rotateY(-10deg) translateX(-10px);
+        opacity: 0.6;
+    }
+    .slide-item.next {
+        transform: scale(0.85) rotateY(10deg) translateX(10px);
+        opacity: 0.6;
+    }
+    .slide-item.hidden { display: none; }
+    
+    .slideshow-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(111, 78, 55, 0.8);
+        color: white;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 10;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+    .slideshow-nav:hover { background: #6F4E37; }
+    .slideshow-nav.prev { left: 6px; }
+    .slideshow-nav.next { right: 6px; }
+    .slideshow-dots {
+        position: absolute;
+        bottom: 6px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 6px;
+        z-index: 5;
+    }
+    .slideshow-dots .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ddd;
+        cursor: pointer;
+        border: none;
+        padding: 0;
+        transition: 0.3s;
+    }
+    .slideshow-dots .dot.active { background: #6F4E37; width: 20px; border-radius: 4px; }
     
     .btn-add {
         background: #6F4E37; color: white; border: none;
@@ -107,10 +186,7 @@
         margin-top: 6px; cursor: pointer; transition: 0.2s;
     }
     .btn-add:hover { background: #5a3d2b; }
-    .btn-add:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-    }
+    .btn-add:disabled { background: #ccc; cursor: not-allowed; }
     .btn-check-branches {
         background: transparent;
         color: #6F4E37;
@@ -123,12 +199,8 @@
         margin-top: 4px;
         display: inline-block;
     }
-    .btn-check-branches:hover {
-        background: #6F4E37;
-        color: white;
-    }
+    .btn-check-branches:hover { background: #6F4E37; color: white; }
     
-    /* Products */
     .product-card {
         cursor: pointer; transition: 0.2s;
         border: 1px solid #eee; border-radius: 10px;
@@ -137,15 +209,8 @@
         position: relative;
     }
     .product-card:hover { transform: translateY(-3px); border-color: #6F4E37; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-    .product-card.sold-out {
-        opacity: 0.7;
-        cursor: default;
-    }
-    .product-card.sold-out:hover {
-        transform: none;
-        border-color: #eee;
-        box-shadow: none;
-    }
+    .product-card.sold-out { opacity: 0.7; cursor: default; }
+    .product-card.sold-out:hover { transform: none; border-color: #eee; box-shadow: none; }
     .product-card .product-image {
         width: 100%; height: 90px; border-radius: 8px;
         overflow: hidden; background: #f8f6f4;
@@ -166,54 +231,33 @@
         z-index: 6;
     }
     
-    /* Sold Out Badge */
     .sold-out-badge {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        background: #dc3545;
-        color: white;
-        padding: 2px 10px;
-        border-radius: 12px;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        z-index: 5;
+        position: absolute; top: 8px; right: 8px;
+        background: #dc3545; color: white;
+        padding: 2px 10px; border-radius: 12px;
+        font-size: 10px; font-weight: 700;
+        letter-spacing: 0.5px; z-index: 5;
         border: 1px solid white;
         box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
     }
     .sold-out-overlay {
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(255,255,255,0.3);
-        border-radius: 10px;
-        z-index: 3;
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(255,255,255,0.3); border-radius: 10px; z-index: 3;
         pointer-events: none;
     }
     
     .availability-status {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        margin-top: 2px;
+        display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 2px;
     }
     .availability-dot {
-        display: inline-block;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
+        display: inline-block; width: 7px; height: 7px; border-radius: 50%;
     }
     .availability-dot.available { background: #28a745; }
     .availability-dot.soldout { background: #dc3545; }
-    .availability-text {
-        font-size: 11px;
-        font-weight: 500;
-    }
+    .availability-text { font-size: 11px; font-weight: 500; }
     .availability-text.available { color: #28a745; }
     .availability-text.soldout { color: #dc3545; }
     
-    /* Branch availability modal */
     .branch-availability-modal {
         display: none;
         position: fixed;
@@ -224,9 +268,7 @@
         justify-content: center;
         padding: 20px;
     }
-    .branch-availability-modal.show {
-        display: flex;
-    }
+    .branch-availability-modal.show { display: flex; }
     .branch-availability-modal .modal-content {
         background: white;
         border-radius: 16px;
@@ -236,51 +278,30 @@
         overflow-y: auto;
         padding: 25px;
         position: relative;
-        animation: modalIn 0.3s ease;
+        animation: fadeInUp 0.3s ease;
+    }
+    @keyframes fadeInUp {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
     }
     .branch-availability-modal .modal-close {
-        position: absolute;
-        top: 12px;
-        right: 16px;
-        background: none;
-        border: none;
-        font-size: 22px;
-        color: #999;
-        cursor: pointer;
+        position: absolute; top: 12px; right: 16px;
+        background: none; border: none; font-size: 22px; color: #999; cursor: pointer;
     }
     .branch-availability-modal .modal-close:hover { color: #333; }
     .branch-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 12px;
-        border-bottom: 1px solid #f5f5f5;
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 12px; border-bottom: 1px solid #f5f5f5;
     }
     .branch-item:last-child { border-bottom: none; }
-    .branch-item .branch-name {
-        font-weight: 500;
-        font-size: 14px;
-    }
+    .branch-item .branch-name { font-weight: 500; font-size: 14px; }
     .branch-item .branch-status {
-        font-size: 12px;
-        font-weight: 600;
-        padding: 2px 12px;
-        border-radius: 12px;
+        font-size: 12px; font-weight: 600; padding: 2px 12px; border-radius: 12px;
     }
-    .branch-item .branch-status.available {
-        background: #d4edda;
-        color: #155724;
-    }
-    .branch-item .branch-status.unavailable {
-        background: #f8d7da;
-        color: #721c24;
-    }
-    .branch-item .branch-distance {
-        font-size: 12px;
-        color: #999;
-    }
+    .branch-item .branch-status.available { background: #d4edda; color: #155724; }
+    .branch-item .branch-status.unavailable { background: #f8d7da; color: #721c24; }
+    .branch-item .branch-distance { font-size: 12px; color: #999; }
     
-    /* Cart */
     .cart-item {
         display: flex; justify-content: space-between; align-items: center;
         padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px;
@@ -294,7 +315,6 @@
     .qty-btn:hover { background: #6F4E37; color: white; border-color: #6F4E37; }
     .cart-total { font-size: 18px; font-weight: 600; color: #6F4E37; }
     
-    /* Order Modal */
     .order-modal {
         display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
         background: rgba(0,0,0,0.6); z-index: 9999;
@@ -303,17 +323,9 @@
     .order-modal.show { display: flex; }
     .order-modal .modal-content {
         background: white; border-radius: 16px;
-        max-width: 600px;
-        width: 100%;
-        max-height: 95vh;
-        overflow-y: auto;
-        padding: 25px;
-        position: relative;
-        animation: modalIn 0.3s ease;
-    }
-    @keyframes modalIn {
-        from { transform: scale(0.9); opacity: 0; }
-        to { transform: scale(1); opacity: 1; }
+        max-width: 600px; width: 100%; max-height: 95vh;
+        overflow-y: auto; padding: 25px;
+        position: relative; animation: fadeInUp 0.3s ease;
     }
     .order-modal .modal-close {
         position: absolute; top: 12px; right: 16px;
@@ -360,12 +372,8 @@
         white-space: nowrap;
         text-decoration: none;
     }
-    .address-warning .btn-setup:hover {
-        background: #5a3d2b;
-        color: white;
-    }
+    .address-warning .btn-setup:hover { background: #5a3d2b; color: white; }
     
-    /* Map */
     .modal-mini-map {
         height: 200px;
         border-radius: 10px;
@@ -375,10 +383,7 @@
         position: relative;
         background: #f8f6f4;
     }
-    .modal-mini-map #modalMap {
-        height: 100%;
-        width: 100%;
-    }
+    .modal-mini-map #modalMap { height: 100%; width: 100%; }
     .modal-mini-map .map-loading {
         position: absolute;
         top: 50%; left: 50%;
@@ -414,19 +419,14 @@
         font-weight: 600;
         margin-left: 6px;
     }
-    .branch-info-row .distance-value {
-        font-weight: 600;
-        color: #6F4E37;
-    }
+    .branch-info-row .distance-value { font-weight: 600; color: #6F4E37; }
     
     .branch-selector-wrapper {
         display: flex;
         gap: 8px;
         align-items: center;
     }
-    .branch-selector-wrapper select {
-        flex: 1;
-    }
+    .branch-selector-wrapper select { flex: 1; }
     .btn-detect-branch {
         background: #6F4E37;
         color: white;
@@ -468,6 +468,7 @@
     }
     .pricing-summary .price-row.discount { color: #28a745; }
     .pricing-summary .price-row.original { color: #999; text-decoration: line-through; }
+    .pricing-summary .price-row.delivery-fee { color: #6F4E37; font-weight: 600; }
     
     .coffee-marker {
         background: #6F4E37;
@@ -514,7 +515,6 @@
     }
     .location-banner .btn-locate:hover { background: #5a3d2b; }
     
-    /* Filter Buttons */
     .filter-group {
         display: flex;
         gap: 6px;
@@ -530,24 +530,279 @@
         cursor: pointer;
         transition: 0.2s;
     }
-    .filter-btn:hover {
-        border-color: #6F4E37;
+    .filter-btn:hover { border-color: #6F4E37; }
+    .filter-btn.active { background: #6F4E37; color: white; border-color: #6F4E37; }
+    
+    /* Feedback Modal */
+    .feedback-modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 99999;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(4px);
     }
-    .filter-btn.active {
+    .feedback-modal.show {
+        display: flex;
+        animation: fadeIn 0.3s ease;
+    }
+    .feedback-modal .feedback-modal-content {
+        background: white;
+        border-radius: 20px;
+        max-width: 420px;
+        width: 100%;
+        padding: 35px 30px;
+        text-align: center;
+        animation: slideUp 0.4s ease;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    .feedback-modal .feedback-modal-content::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+    .feedback-modal .feedback-modal-content.success::before {
+        background: linear-gradient(90deg, #28a745, #20c997);
+    }
+    .feedback-modal .feedback-modal-content.error::before {
+        background: linear-gradient(90deg, #dc3545, #ff6b6b);
+    }
+    .feedback-modal .feedback-modal-content.warning::before {
+        background: linear-gradient(90deg, #ffc107, #fd7e14);
+    }
+    .feedback-modal .feedback-modal-content.info::before {
+        background: linear-gradient(90deg, #17a2b8, #0dcaf0);
+    }
+    .feedback-modal .feedback-icon {
+        font-size: 64px;
+        margin-bottom: 12px;
+        display: inline-block;
+        animation: popIn 0.5s ease;
+    }
+    .feedback-modal .feedback-icon.success { color: #28a745; }
+    .feedback-modal .feedback-icon.error { color: #dc3545; }
+    .feedback-modal .feedback-icon.warning { color: #ffc107; }
+    .feedback-modal .feedback-icon.info { color: #17a2b8; }
+    .feedback-modal h4 {
+        font-size: 22px;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 6px;
+    }
+    .feedback-modal p {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+    .feedback-modal .feedback-details {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin: 10px 0 16px;
+        text-align: left;
+        font-size: 13px;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    .feedback-modal .feedback-details .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        border-bottom: 1px solid #eee;
+    }
+    .feedback-modal .feedback-details .detail-row:last-child { border-bottom: none; }
+    .feedback-modal .feedback-details .detail-row .label { color: #999; font-weight: 500; }
+    .feedback-modal .feedback-details .detail-row .value { font-weight: 600; color: #333; }
+    .feedback-modal .feedback-details .detail-row .value.text-success { color: #28a745; }
+    .feedback-modal .feedback-details .detail-row .value.text-danger { color: #dc3545; }
+    .feedback-modal .feedback-btn {
         background: #6F4E37;
         color: white;
-        border-color: #6F4E37;
+        border: none;
+        padding: 10px 40px;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 4px;
+    }
+    .feedback-modal .feedback-btn:hover { background: #5a3d2b; transform: scale(1.02); }
+    .feedback-modal .feedback-btn:active { transform: scale(0.98); }
+    .feedback-modal .feedback-btn.btn-success { background: #28a745; }
+    .feedback-modal .feedback-btn.btn-success:hover { background: #218838; }
+    .feedback-modal .feedback-btn.btn-danger { background: #dc3545; }
+    .feedback-modal .feedback-btn.btn-danger:hover { background: #c82333; }
+    .feedback-modal .feedback-btn.btn-warning { background: #ffc107; color: #333; }
+    .feedback-modal .feedback-btn.btn-warning:hover { background: #e0a800; }
+    
+    /* Confirmation Modal - Custom */
+    .confirmation-modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 99998;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(6px);
+    }
+    .confirmation-modal.show {
+        display: flex;
+        animation: fadeIn 0.3s ease;
+    }
+    .confirmation-modal .confirmation-content {
+        background: white;
+        border-radius: 20px;
+        max-width: 500px;
+        width: 100%;
+        padding: 30px 30px 25px;
+        animation: slideUp 0.4s ease;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+        position: relative;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .confirmation-modal .confirmation-content .confirmation-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #6F4E37;
+        margin-bottom: 15px;
+    }
+    .confirmation-modal .confirmation-content .confirmation-header i {
+        font-size: 28px;
+        color: #6F4E37;
+    }
+    .confirmation-modal .confirmation-content .confirmation-header h4 {
+        font-size: 20px;
+        font-weight: 700;
+        color: #333;
+        margin: 0;
+    }
+    .confirmation-modal .confirmation-content .confirmation-body {
+        margin-bottom: 15px;
+    }
+    .confirmation-modal .confirmation-content .confirmation-body .order-summary-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        font-size: 13px;
+        border-bottom: 1px solid #f5f5f5;
+    }
+    .confirmation-modal .confirmation-content .confirmation-body .order-summary-item:last-child {
+        border-bottom: none;
+    }
+    .confirmation-modal .confirmation-content .confirmation-body .summary-total {
+        font-weight: 700;
+        font-size: 18px;
+        color: #6F4E37;
+        border-top: 2px solid #6F4E37;
+        padding-top: 8px;
+        margin-top: 6px;
+        display: flex;
+        justify-content: space-between;
+    }
+    .confirmation-modal .confirmation-content .confirmation-body .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+        font-size: 13px;
+        color: #666;
+    }
+    .confirmation-modal .confirmation-content .confirmation-body .summary-row .label { color: #999; }
+    .confirmation-modal .confirmation-content .confirmation-body .summary-row .value { font-weight: 500; color: #333; }
+    .confirmation-modal .confirmation-content .confirmation-body .summary-row .value.delivery { color: #6F4E37; }
+    .confirmation-modal .confirmation-content .confirmation-body .summary-row .value.discount { color: #28a745; }
+    .confirmation-modal .confirmation-content .confirmation-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+    }
+    .confirmation-modal .confirmation-content .confirmation-actions .btn {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .confirmation-modal .confirmation-content .confirmation-actions .btn-cancel {
+        background: #f5f5f5;
+        color: #666;
+    }
+    .confirmation-modal .confirmation-content .confirmation-actions .btn-cancel:hover {
+        background: #eee;
+    }
+    .confirmation-modal .confirmation-content .confirmation-actions .btn-confirm {
+        background: #6F4E37;
+        color: white;
+    }
+    .confirmation-modal .confirmation-content .confirmation-actions .btn-confirm:hover {
+        background: #5a3d2b;
+        transform: scale(1.02);
+    }
+    .confirmation-modal .confirmation-content .confirmation-actions .btn-confirm:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    .confirmation-modal .confirmation-close {
+        position: absolute;
+        top: 12px;
+        right: 16px;
+        background: none;
+        border: none;
+        font-size: 22px;
+        color: #999;
+        cursor: pointer;
+    }
+    .confirmation-modal .confirmation-close:hover { color: #333; }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @keyframes slideUp {
+        from { transform: translateY(40px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes popIn {
+        0% { transform: scale(0); opacity: 0; }
+        60% { transform: scale(1.3); }
+        80% { transform: scale(0.9); }
+        100% { transform: scale(1); opacity: 1; }
     }
     
-    /* Mobile */
     @media (max-width: 576px) {
-        .slideshow-container .slide {
-            flex-direction: column; text-align: center; padding: 15px;
-            height: auto; min-height: 260px;
-        }
-        .slideshow-container .slide .image { width: 100px; height: 100px; font-size: 32px; margin-top: 8px; }
-        .slideshow-container .slide .info .name { font-size: 18px; }
-        .slideshow-container { height: auto; min-height: 280px; }
+        .slideshow-wrapper { padding: 10px 15px; gap: 8px; }
+        .slide-item { flex: 0 0 45%; padding: 10px; flex-direction: column; text-align: center; }
+        .slide-item .slide-image { width: 50px; height: 50px; font-size: 20px; }
+        .slide-item .slide-info .name { font-size: 12px; }
+        .slide-item .slide-info .price { font-size: 14px; }
+        .slide-item .slide-info .desc { display: none; }
+        .slide-item.active { flex: 0 0 55%; }
+        .slide-item.active .slide-image { width: 70px; height: 70px; font-size: 28px; }
+        .slide-item.active .slide-info .name { font-size: 14px; }
+        .slide-item.active .slide-info .price { font-size: 16px; }
+        .slideshow-nav { width: 24px; height: 24px; font-size: 10px; }
+        .slideshow-nav.prev { left: 2px; }
+        .slideshow-nav.next { right: 2px; }
         .col-4 { flex: 0 0 50%; max-width: 50%; }
         .product-card .product-image { height: 70px; }
         .order-modal .modal-content { padding: 20px; margin: 10px; }
@@ -559,6 +814,13 @@
         .address-warning { flex-direction: column; text-align: center; }
         .branch-selector { flex-direction: column; align-items: stretch; text-align: center; }
         .branch-selector .branch-stock-info { margin-left: 0; }
+        .feedback-modal .feedback-modal-content { padding: 25px 20px; margin: 10px; }
+        .feedback-modal .feedback-icon { font-size: 48px; }
+        .feedback-modal h4 { font-size: 18px; }
+        .feedback-modal p { font-size: 13px; }
+        .confirmation-modal .confirmation-content { padding: 20px; margin: 10px; }
+        .confirmation-modal .confirmation-content .confirmation-actions { flex-direction: column; }
+        .confirmation-modal .confirmation-content .confirmation-actions .btn { width: 100%; }
     }
 </style>
 
@@ -579,7 +841,7 @@
     <select id="branchSelect" onchange="switchBranch()">
         @foreach($branches as $branch)
             <option value="{{ $branch->id }}" {{ $branch->id == $selectedBranchId ? 'selected' : '' }}>
-                {{ str_replace('☕ Brew & Bean Co. - ', '', $branch->name) }}
+                {{ str_replace('Brew & Bean Co. - ', '', $branch->name) }}
             </option>
         @endforeach
     </select>
@@ -624,37 +886,45 @@
     <button class="filter-btn" onclick="filterProducts('soldout')">Sold Out</button>
 </div>
 
-<!-- Slideshow -->
+<!-- Slideshow with Expand/Distort -->
 <div class="slideshow-container mb-3" id="slideshow">
-    @foreach($products->take(5) as $index => $product)
-        <div class="slide {{ $index === 0 ? 'active' : '' }}" data-index="{{ $index }}">
-            <div class="info">
-                <div class="category">{{ $product->category ?? 'Featured' }}</div>
-                <div class="name">{{ $product->name }}</div>
-                <div class="price">₱{{ number_format($product->price, 2) }}</div>
-                @if($product->description)
-                    <div class="desc">{{ Str::limit($product->description, 50) }}</div>
-                @endif
-                @if($product->is_available)
-                    <button class="btn-add" onclick="addToCart({{ $product->id }}, '{{ $product->name }}', {{ $product->price }})">
-                        <i class="fas fa-plus me-1"></i> Add
-                    </button>
-                @else
-                    <button class="btn-add" disabled style="background:#dc3545;">
-                        <i class="fas fa-times me-1"></i> Sold Out
-                    </button>
-                @endif
+    <button class="slideshow-nav prev" onclick="slidePrev()">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <div class="slideshow-wrapper" id="slideshowWrapper">
+        @foreach($products->take(5) as $index => $product)
+            <div class="slide-item {{ $index === 0 ? 'active' : ($index === 1 ? 'next' : '') }}" data-index="{{ $index }}">
+                <div class="slide-image">
+                    @if($product->image && file_exists(storage_path('app/public/products/' . $product->image)))
+                        <img src="{{ asset('storage/products/' . $product->image) }}" alt="{{ $product->name }}">
+                    @else
+                        <i class="fas fa-coffee"></i>
+                    @endif
+                </div>
+                <div class="slide-info">
+                    <div class="category">{{ $product->category ?? 'Featured' }}</div>
+                    <div class="name">{{ $product->name }}</div>
+                    <div class="price">₱{{ number_format($product->price, 2) }}</div>
+                    @if($product->description)
+                        <div class="desc">{{ Str::limit($product->description, 40) }}</div>
+                    @endif
+                    @if($product->is_available)
+                        <button class="btn-add-small" onclick="event.stopPropagation(); addToCart({{ $product->id }}, '{{ $product->name }}', {{ $product->price }})">
+                            <i class="fas fa-plus me-1"></i> Add
+                        </button>
+                    @else
+                        <button class="btn-add-small" disabled>
+                            <i class="fas fa-times me-1"></i> Sold Out
+                        </button>
+                    @endif
+                </div>
             </div>
-            <div class="image">
-                @if($product->image && file_exists(storage_path('app/public/products/' . $product->image)))
-                    <img src="{{ asset('storage/products/' . $product->image) }}" alt="{{ $product->name }}">
-                @else
-                    <i class="fas fa-coffee"></i>
-                @endif
-            </div>
-        </div>
-    @endforeach
-    <div class="slide-dots">
+        @endforeach
+    </div>
+    <button class="slideshow-nav next" onclick="slideNext()">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    <div class="slideshow-dots" id="slideshowDots">
         @for($i = 0; $i < min(5, $products->count()); $i++)
             <button class="dot {{ $i === 0 ? 'active' : '' }}" onclick="goToSlide({{ $i }})"></button>
         @endfor
@@ -751,7 +1021,7 @@
                 @foreach($recentPurchases->take(3) as $sale)
                     <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="font-size:13px;">
                         <div>
-                            <div>#{{ $sale->id }} - {{ str_replace('☕ Brew & Bean Co. - ', '', $sale->branch->name ?? 'Unknown') }}</div>
+                            <div>#{{ $sale->id }} - {{ str_replace('Brew & Bean Co. - ', '', $sale->branch->name ?? 'Unknown') }}</div>
                             <div style="font-size:11px;color:#999;">{{ $sale->sale_date->format('M d, Y h:i A') }}</div>
                         </div>
                         <div>
@@ -768,7 +1038,7 @@
 <!-- Branch Availability Modal -->
 <div class="branch-availability-modal" id="branchAvailabilityModal">
     <div class="modal-content">
-        <button class="modal-close" onclick="closeBranchModal()">&times;</button>
+        <button class="modal-close" onclick="closeBranchModal()"><i class="fas fa-times"></i></button>
         <h5 class="mb-3" id="branchModalTitle">Branch Availability</h5>
         <div id="branchListContainer">
             <div class="text-center py-4">
@@ -785,10 +1055,9 @@
 <!-- Order Modal -->
 <div class="order-modal" id="orderModal">
     <div class="modal-content">
-        <button class="modal-close" onclick="closeOrderModal()">&times;</button>
-        <h5 class="mb-2">📋 Order Summary</h5>
+        <button class="modal-close" onclick="closeOrderModal()"><i class="fas fa-times"></i></button>
+        <h5 class="mb-2"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
         
-        <!-- Address Warning -->
         <div id="addressWarning" style="display:none;">
             <div class="address-warning">
                 <i class="fas fa-exclamation-triangle"></i>
@@ -804,6 +1073,7 @@
         <div class="pricing-summary" id="pricingSummary">
             <div class="price-row original" id="priceOriginal">Subtotal: ₱0.00</div>
             <div class="price-row discount" id="priceDiscount">Discount: ₱0.00 (0%)</div>
+            <div class="price-row delivery-fee" id="priceDeliveryFee" style="display:none;"><i class="fas fa-truck me-1"></i>Delivery Fee: ₱0.00</div>
             <div class="price-row total" id="priceTotal">Total: ₱0.00</div>
             <div class="price-row" style="font-size:12px;color:#999;border-top:1px solid #e8e8e8;padding-top:4px;margin-top:2px;">
                 <span>Points to earn:</span>
@@ -824,7 +1094,7 @@
             <div class="branch-info-row">
                 <i class="fas fa-store"></i>
                 <span id="selectedBranchName">Select a branch</span>
-                <span class="badge-nearest" id="nearestBadge" style="display:none;">📍 Nearest</span>
+                <span class="badge-nearest" id="nearestBadge" style="display:none;">Nearest</span>
             </div>
             <div class="branch-info-row">
                 <i class="fas fa-location-arrow"></i>
@@ -844,8 +1114,10 @@
                         <option value="{{ $branch->id }}" 
                                 data-lat="{{ $branch->latitude ?? 0 }}" 
                                 data-lng="{{ $branch->longitude ?? 0 }}"
-                                data-name="{{ str_replace('☕ Brew & Bean Co. - ', '', $branch->name) }}">
-                            {{ str_replace('☕ Brew & Bean Co. - ', '', $branch->name) }}
+                                data-name="{{ str_replace('Brew & Bean Co. - ', '', $branch->name) }}"
+                                data-distance="{{ $branch->distance ?? 0 }}"
+                                {{ $branch->id == $selectedBranchId ? 'selected' : '' }}>
+                            {{ str_replace('Brew & Bean Co. - ', '', $branch->name) }}
                         </option>
                     @endforeach
                 </select>
@@ -859,7 +1131,7 @@
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="deliveryCheck" onchange="toggleDelivery()">
                 <label class="form-check-label" for="deliveryCheck" style="font-size:12px;">
-                    <i class="fas fa-truck me-1"></i> Delivery
+                    <i class="fas fa-truck me-1"></i> Delivery (₱10/km)
                 </label>
             </div>
         </div>
@@ -868,8 +1140,47 @@
             <input type="text" id="orderNotes" class="form-control form-control-sm" placeholder="Special instructions...">
         </div>
         
-        <button class="btn w-100 mt-3" onclick="confirmOrder()" id="confirmOrderBtn" style="background:#6F4E37;color:white;border-radius:6px;padding:8px;font-weight:600;">
+        <button class="btn w-100 mt-3" onclick="openConfirmationModal()" id="confirmOrderBtn" style="background:#6F4E37;color:white;border-radius:6px;padding:8px;font-weight:600;">
             <i class="fas fa-check-circle me-2"></i> Confirm Order
+        </button>
+    </div>
+</div>
+
+<!-- Custom Confirmation Modal -->
+<div class="confirmation-modal" id="confirmationModal">
+    <div class="confirmation-content">
+        <button class="confirmation-close" onclick="closeConfirmationModal()">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="confirmation-header">
+            <i class="fas fa-clipboard-check"></i>
+            <h4>Confirm Order</h4>
+        </div>
+        <div class="confirmation-body" id="confirmationBody">
+            <!-- Dynamic content -->
+        </div>
+        <div class="confirmation-actions">
+            <button class="btn btn-cancel" onclick="closeConfirmationModal()">
+                <i class="fas fa-times me-1"></i> Cancel
+            </button>
+            <button class="btn btn-confirm" onclick="placeOrder()" id="confirmPlaceBtn">
+                <i class="fas fa-check me-1"></i> Confirm Order
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback Modal -->
+<div class="feedback-modal" id="feedbackModal">
+    <div class="feedback-modal-content">
+        <div class="feedback-icon" id="feedbackIcon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h4 id="feedbackTitle">Success!</h4>
+        <p id="feedbackMessage">Your order has been placed successfully.</p>
+        <div id="feedbackDetails" class="feedback-details"></div>
+        <button class="feedback-btn" onclick="closeFeedbackModal()" id="feedbackBtn">
+            <i class="fas fa-check me-2"></i> OK
         </button>
     </div>
 </div>
@@ -889,7 +1200,6 @@
     let userMarker = null;
     let routeLine = null;
     let mapInitialized = false;
-    let branchData = [];
     let nearestBranchId = null;
     const discountRate = {{ $discountRate ?? 0 }};
     let currentFilter = 'all';
@@ -898,11 +1208,79 @@
     let customerLat = '{{ $customer->latitude ?? '' }}';
     let customerLng = '{{ $customer->longitude ?? '' }}';
     let selectedBranchId = {{ $selectedBranchId ?? 0 }};
+    let orderData = null;
 
-    console.log('Customer Address:', customerAddress);
-    console.log('Customer Lat/Lng:', customerLat, customerLng);
-    console.log('All Branches:', allBranches);
-    console.log('Selected Branch ID:', selectedBranchId);
+    // ============= SLIDESHOW =============
+    function updateSlides() {
+        const items = document.querySelectorAll('.slide-item');
+        const dots = document.querySelectorAll('.dot');
+        const total = items.length;
+        
+        items.forEach((item, index) => {
+            item.classList.remove('active', 'prev', 'next', 'hidden');
+            if (index === slideIndex) {
+                item.classList.add('active');
+            } else if (index === (slideIndex - 1 + total) % total) {
+                item.classList.add('prev');
+            } else if (index === (slideIndex + 1) % total) {
+                item.classList.add('next');
+            } else {
+                item.classList.add('hidden');
+            }
+        });
+        
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === slideIndex);
+        });
+    }
+
+    function slideNext() {
+        const total = document.querySelectorAll('.slide-item').length;
+        slideIndex = (slideIndex + 1) % total;
+        updateSlides();
+    }
+
+    function slidePrev() {
+        const total = document.querySelectorAll('.slide-item').length;
+        slideIndex = (slideIndex - 1 + total) % total;
+        updateSlides();
+    }
+
+    function goToSlide(index) {
+        slideIndex = index;
+        updateSlides();
+        clearInterval(slideInterval);
+        startSlideshow();
+    }
+
+    function startSlideshow() {
+        if (slideInterval) clearInterval(slideInterval);
+        slideInterval = setInterval(slideNext, 5000);
+    }
+
+    // ============= ADD TO CART =============
+    window.addToCart = function(productId, productName, productPrice) {
+        const productItem = document.querySelector(`.product-item[data-product-id="${productId}"]`);
+        if (productItem && productItem.dataset.available === 'false') {
+            alert('This product is currently sold out.');
+            return;
+        }
+        
+        const existing = cart.find(item => item.id === productId);
+        if (existing) {
+            existing.quantity += 1;
+        } else {
+            cart.push({ id: productId, name: productName, price: productPrice, quantity: 1 });
+        }
+        updateCart();
+        updateBadge(productId);
+        
+        const card = document.querySelector(`.product-item[data-product-id="${productId}"] .product-card`);
+        if (card) {
+            card.style.transform = 'scale(0.95)';
+            setTimeout(() => card.style.transform = '', 200);
+        }
+    };
 
     // ============= SWITCH BRANCH =============
     function switchBranch() {
@@ -943,6 +1321,7 @@
             alert('Please set up your delivery address in your profile first.');
             document.getElementById('deliveryCheck').checked = false;
         }
+        updatePricing();
     }
 
     // ============= CHECK OTHER BRANCHES =============
@@ -983,22 +1362,21 @@
                 .then(data => {
                     checked++;
                     const isAvailable = data.available || false;
-                    
                     if (isAvailable) hasAvailable = true;
                     
                     const statusClass = isAvailable ? 'available' : 'unavailable';
-                    const statusText = isAvailable ? '✅ Available' : '❌ Sold Out';
+                    const statusText = isAvailable ? 'Available' : 'Sold Out';
                     
                     let distanceText = '';
                     if (branch.distance) {
                         const dist = branch.distance < 1 ? (branch.distance * 1000).toFixed(0) + ' m' : branch.distance.toFixed(1) + ' km';
-                        distanceText = `📏 ${dist}`;
+                        distanceText = dist;
                     }
                     
                     html += `
                         <div class="branch-item">
                             <div>
-                                <div class="branch-name">☕ ${branch.name.replace('☕ Brew & Bean Co. - ', '')}</div>
+                                <div class="branch-name">${branch.name.replace('Brew & Bean Co. - ', '')}</div>
                                 <div class="branch-distance">${distanceText}</div>
                             </div>
                             <span class="branch-status ${statusClass}">${statusText}</span>
@@ -1023,12 +1401,11 @@
                     html += `
                         <div class="branch-item">
                             <div>
-                                <div class="branch-name">☕ ${branch.name.replace('☕ Brew & Bean Co. - ', '')}</div>
+                                <div class="branch-name">${branch.name.replace('Brew & Bean Co. - ', '')}</div>
                             </div>
-                            <span class="branch-status unavailable">⚠️ Check failed</span>
+                            <span class="branch-status unavailable">Check failed</span>
                         </div>
                     `;
-                    
                     if (checked === totalBranches) {
                         container.innerHTML = html;
                     }
@@ -1044,24 +1421,15 @@
     // ============= FILTER PRODUCTS =============
     function filterProducts(filter) {
         currentFilter = filter;
-        
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelector(`.filter-btn[onclick*="${filter}"]`)?.classList.add('active');
         
         document.querySelectorAll('.product-item').forEach(item => {
             const isAvailable = item.dataset.available === 'true';
-            
-            if (filter === 'all') {
-                item.style.display = '';
-            } else if (filter === 'available') {
-                item.style.display = isAvailable ? '' : 'none';
-            } else if (filter === 'soldout') {
-                item.style.display = isAvailable ? 'none' : '';
-            }
+            if (filter === 'all') item.style.display = '';
+            else if (filter === 'available') item.style.display = isAvailable ? '' : 'none';
+            else if (filter === 'soldout') item.style.display = isAvailable ? 'none' : '';
         });
-        
         updateAvailableCount();
     }
 
@@ -1073,20 +1441,20 @@
                 function(position) {
                     userLat = position.coords.latitude;
                     userLng = position.coords.longitude;
-                    document.getElementById('locationDisplay').textContent = '📍 Location detected';
+                    document.getElementById('locationDisplay').textContent = 'Location detected';
                     findNearestBranch(userLat, userLng);
                 },
                 function() {
-                    document.getElementById('locationDisplay').textContent = '⚠️ Unable to get location. Please enable location services.';
+                    document.getElementById('locationDisplay').textContent = 'Unable to get location.';
                 }
             );
         } else {
-            document.getElementById('locationDisplay').textContent = '❌ Geolocation not supported';
+            document.getElementById('locationDisplay').textContent = 'Geolocation not supported';
         }
     }
 
     function calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // km
+        const R = 6371;
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -1097,7 +1465,6 @@
     }
 
     function findNearestBranch(lat, lng) {
-        // Calculate distances for all branches
         allBranches.forEach(branch => {
             if (branch.latitude && branch.longitude) {
                 const dist = calculateDistance(lat, lng, parseFloat(branch.latitude), parseFloat(branch.longitude));
@@ -1109,29 +1476,28 @@
             }
         });
 
-        // Sort by distance
         allBranches.sort((a, b) => (a.distance || 999) - (b.distance || 999));
+        nearestBranchId = allBranches[0]?.id;
 
-        // Update select dropdown
         const select = document.getElementById('orderBranchSelect');
+        const currentValue = select.value;
         select.innerHTML = '';
-        allBranches.forEach((branch, index) => {
+        allBranches.forEach((branch) => {
             const option = document.createElement('option');
             option.value = branch.id;
             option.dataset.lat = branch.latitude || 0;
             option.dataset.lng = branch.longitude || 0;
-            option.dataset.name = branch.name.replace('☕ Brew & Bean Co. - ', '');
+            option.dataset.name = branch.name.replace('Brew & Bean Co. - ', '');
             option.dataset.distance = branch.distance || 0;
             const distanceText = branch.distance_text ? ` (${branch.distance_text})` : '';
-            option.textContent = branch.name.replace('☕ Brew & Bean Co. - ', '') + distanceText;
-            if (index === 0) {
+            option.textContent = branch.name.replace('Brew & Bean Co. - ', '') + distanceText;
+            if (branch.id == currentValue || (branch.id === nearestBranchId && !currentValue)) {
                 option.selected = true;
-                nearestBranchId = branch.id;
             }
             select.appendChild(option);
         });
 
-        document.getElementById('locationDisplay').textContent = '📍 Nearest branch found!';
+        document.getElementById('locationDisplay').textContent = 'Location detected';
         updateModalMap();
         updatePricing();
         updateNearestBadge();
@@ -1151,14 +1517,19 @@
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-location-dot"></i> Detect Nearest';
                 },
-                function() {
-                    alert('Unable to get location. Please enable location services or select manually.');
+                function(error) {
+                    let msg = 'Unable to get location. ';
+                    if (error.code === 1) msg += 'Please allow location access.';
+                    else if (error.code === 2) msg += 'Location unavailable.';
+                    else msg += 'Please try again.';
+                    alert(msg);
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-location-dot"></i> Detect Nearest';
-                }
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
             );
         } else {
-            alert('Geolocation is not supported by your browser. Please select manually.');
+            alert('Geolocation is not supported by your browser.');
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-location-dot"></i> Detect Nearest';
         }
@@ -1166,9 +1537,8 @@
 
     function updateNearestBadge() {
         const select = document.getElementById('orderBranchSelect');
-        const selectedOption = select.options[select.selectedIndex];
+        const selectedOption = select?.options[select.selectedIndex];
         const badge = document.getElementById('nearestBadge');
-        
         if (selectedOption && nearestBranchId && parseInt(selectedOption.value) === nearestBranchId) {
             badge.style.display = 'inline';
         } else {
@@ -1177,23 +1547,6 @@
     }
 
     // ============= CART FUNCTIONS =============
-    function addToCart(id, name, price) {
-        const productItem = document.querySelector(`.product-item[data-product-id="${id}"]`);
-        if (productItem && productItem.dataset.available === 'false') {
-            alert('This product is currently sold out.');
-            return;
-        }
-        
-        const existing = cart.find(item => item.id === id);
-        if (existing) {
-            existing.quantity += 1;
-        } else {
-            cart.push({ id: id, name: name, price: price, quantity: 1 });
-        }
-        updateCart();
-        updateBadge(id);
-    }
-
     function removeFromCart(id) {
         cart = cart.filter(item => item.id !== id);
         updateCart();
@@ -1274,51 +1627,91 @@
     // ============= PRICING CALCULATOR =============
     function calculatePricing() {
         let subtotal = 0;
-        
-        cart.forEach(item => {
-            subtotal += item.price * item.quantity;
-        });
+        if (cart && cart.length > 0) {
+            cart.forEach(item => { 
+                subtotal += (item.price || 0) * (item.quantity || 0); 
+            });
+        }
         
         const discountAmount = (subtotal * discountRate) / 100;
-        const total = subtotal - discountAmount;
+        const deliveryCheck = document.getElementById('deliveryCheck');
+        const isDelivery = deliveryCheck ? deliveryCheck.checked : false;
+        const select = document.getElementById('orderBranchSelect');
+        let distance = 0;
+        
+        if (select) {
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption) {
+                distance = parseFloat(selectedOption.dataset.distance) || 0;
+            }
+        }
+        
+        const deliveryFee = isDelivery ? (distance * 10) : 0;
+        const total = subtotal - discountAmount + deliveryFee;
         const pointsEarned = Math.floor(total / 100);
         
-        return { subtotal, discountAmount, total, pointsEarned, discountRate };
+        return { 
+            subtotal: subtotal, 
+            discountAmount: discountAmount, 
+            deliveryFee: deliveryFee, 
+            total: total, 
+            pointsEarned: pointsEarned, 
+            discountRate: discountRate,
+            distance: distance,
+            isDelivery: isDelivery
+        };
     }
 
     function updatePricing() {
         const pricing = calculatePricing();
         
-        document.getElementById('priceOriginal').textContent = `Subtotal: ₱${pricing.subtotal.toFixed(2)}`;
-        
-        if (pricing.discountRate > 0) {
-            document.getElementById('priceDiscount').textContent = `Discount: -₱${pricing.discountAmount.toFixed(2)} (${pricing.discountRate}%)`;
-            document.getElementById('priceDiscount').style.display = 'flex';
-        } else {
-            document.getElementById('priceDiscount').textContent = `Discount: ₱0.00 (0%)`;
+        const originalEl = document.getElementById('priceOriginal');
+        if (originalEl) {
+            originalEl.textContent = `Subtotal: ₱${pricing.subtotal.toFixed(2)}`;
         }
         
-        document.getElementById('priceTotal').textContent = `Total: ₱${pricing.total.toFixed(2)}`;
-        document.getElementById('pointsToEarn').textContent = pricing.pointsEarned;
+        const discountEl = document.getElementById('priceDiscount');
+        if (discountEl) {
+            if (pricing.discountRate > 0) {
+                discountEl.textContent = `Discount: -₱${pricing.discountAmount.toFixed(2)} (${pricing.discountRate}%)`;
+                discountEl.style.display = 'flex';
+            } else {
+                discountEl.textContent = `Discount: ₱0.00 (0%)`;
+            }
+        }
+
+        const deliveryRow = document.getElementById('priceDeliveryFee');
+        if (deliveryRow) {
+            if (pricing.deliveryFee > 0) {
+                deliveryRow.textContent = `Delivery Fee: ₱${pricing.deliveryFee.toFixed(2)} (${pricing.distance.toFixed(1)} km × ₱10/km)`;
+                deliveryRow.style.display = 'flex';
+            } else {
+                deliveryRow.style.display = 'none';
+            }
+        }
+        
+        const totalEl = document.getElementById('priceTotal');
+        if (totalEl) {
+            totalEl.textContent = `Total: ₱${pricing.total.toFixed(2)}`;
+        }
+        
+        const pointsEl = document.getElementById('pointsToEarn');
+        if (pointsEl) {
+            pointsEl.textContent = pricing.pointsEarned;
+        }
     }
 
     // ============= MODAL MAP =============
     function initModalMap() {
         if (mapInitialized) return;
-        
         const mapContainer = document.getElementById('modalMap');
-        if (!mapContainer) {
-            setTimeout(initModalMap, 500);
-            return;
-        }
+        if (!mapContainer) { setTimeout(initModalMap, 500); return; }
 
         try {
             const defaultCenter = [14.5995, 120.9842];
-            
-            modalMap = L.map('modalMap').setView(defaultCenter, 13);
-            
+            modalMap = L.map('modalMap').setView(defaultCenter, 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                attribution: '© OpenStreetMap',
                 maxZoom: 19
             }).addTo(modalMap);
 
@@ -1332,14 +1725,11 @@
     }
 
     function updateModalMap() {
-        if (!modalMap || !mapInitialized) {
-            initModalMap();
-            return;
-        }
+        if (!modalMap || !mapInitialized) { initModalMap(); return; }
 
         const select = document.getElementById('orderBranchSelect');
+        if (!select) return;
         const selectedOption = select.options[select.selectedIndex];
-        
         if (!selectedOption) return;
         
         const lat = parseFloat(selectedOption.dataset.lat) || 0;
@@ -1347,7 +1737,7 @@
         const name = selectedOption.dataset.name || 'Branch';
         const distance = parseFloat(selectedOption.dataset.distance) || 0;
 
-        document.getElementById('selectedBranchName').textContent = '☕ ' + name;
+        document.getElementById('selectedBranchName').textContent = name;
         updateNearestBadge();
         
         if (distance > 0) {
@@ -1357,21 +1747,12 @@
             document.getElementById('selectedBranchDistance').textContent = '--';
         }
 
-        // Remove old markers and route
-        if (modalMarker) {
-            modalMap.removeLayer(modalMarker);
-        }
-        if (userMarker) {
-            modalMap.removeLayer(userMarker);
-        }
-        if (routeLine) {
-            modalMap.removeLayer(routeLine);
-        }
+        if (modalMarker) modalMap.removeLayer(modalMarker);
+        if (userMarker) modalMap.removeLayer(userMarker);
+        if (routeLine) modalMap.removeLayer(routeLine);
 
         if (lat && lng) {
             const position = [lat, lng];
-            
-            // Branch marker
             const coffeeIcon = L.divIcon({
                 html: '☕',
                 className: 'coffee-marker',
@@ -1384,11 +1765,8 @@
                 .addTo(modalMap)
                 .bindPopup('<b>☕ ' + name + '</b><br>📍 Pickup location');
 
-            // User location if available
             if (userLat && userLng) {
                 const userPos = [userLat, userLng];
-                
-                // User marker
                 const userIcon = L.divIcon({
                     html: '📍',
                     className: 'user-marker',
@@ -1401,7 +1779,6 @@
                     .addTo(modalMap)
                     .bindPopup('📍 Your Location');
 
-                // Draw route line between user and branch
                 routeLine = L.polyline([userPos, position], {
                     color: '#6F4E37',
                     weight: 2,
@@ -1409,13 +1786,9 @@
                     dashArray: '5, 10'
                 }).addTo(modalMap);
 
-                // Fit bounds to show both locations
                 const bounds = L.latLngBounds([userPos, position]);
                 modalMap.fitBounds(bounds, { padding: [50, 50] });
-                
-                if (modalMap.getZoom() > 16) {
-                    modalMap.setZoom(15);
-                }
+                if (modalMap.getZoom() > 16) modalMap.setZoom(15);
             } else {
                 modalMap.setView(position, 15);
             }
@@ -1424,74 +1797,163 @@
 
     // ============= ORDER MODAL =============
     function openOrderModal() {
-        if (cart.length === 0) {
-            alert('Cart is empty!');
-            return;
+        if (cart.length === 0) { 
+            showFeedback('warning', 'Cart is Empty', 'Please add items to your cart before checking out.');
+            return; 
         }
-
         checkCustomerAddress();
 
         const modal = document.getElementById('orderModal');
         const itemsList = document.getElementById('orderItemsList');
         
-        if (!itemsList) return;
-        
         let html = '';
         cart.forEach(item => {
             const subtotal = item.price * item.quantity;
-            html += `
-                <div class="order-item">
-                    <span>${item.name} × ${item.quantity}</span>
-                    <span>₱${subtotal.toFixed(2)}</span>
-                </div>
-            `;
+            html += `<div class="order-item"><span>${item.name} × ${item.quantity}</span><span>₱${subtotal.toFixed(2)}</span></div>`;
         });
         itemsList.innerHTML = html;
         
         updatePricing();
         
-        if (modal) {
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-            setTimeout(initModalMap, 300);
-        }
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        setTimeout(initModalMap, 300);
     }
 
     function closeOrderModal() {
-        const modal = document.getElementById('orderModal');
-        if (modal) {
-            modal.classList.remove('show');
-            document.body.style.overflow = '';
-        }
+        document.getElementById('orderModal').classList.remove('show');
+        document.body.style.overflow = '';
     }
 
-    // ============= CONFIRM ORDER =============
-    function confirmOrder() {
-        if (cart.length === 0) {
-            alert('Cart is empty!');
-            return;
+    // ============= CONFIRMATION MODAL =============
+    function openConfirmationModal() {
+        if (cart.length === 0) { 
+            showFeedback('warning', 'Cart is Empty', 'Please add items to your cart before checking out.');
+            return; 
         }
 
         const branchId = document.getElementById('orderBranchSelect')?.value;
         const isDelivery = document.getElementById('deliveryCheck')?.checked || false;
         const notes = document.getElementById('orderNotes')?.value || '';
 
-        if (!branchId) {
-            alert('Please select a branch.');
-            return;
+        if (!branchId) { 
+            showFeedback('warning', 'No Branch Selected', 'Please select a branch for pickup or delivery.');
+            return; 
         }
-
+        
         if (isDelivery && (!customerAddress || customerAddress.trim() === '')) {
-            alert('Please set up your delivery address in your profile first.');
+            showFeedback('warning', 'Address Required', 'Please set up your delivery address in your profile first.');
             return;
         }
 
-        const items = cart.map(item => ({
-            product_id: item.id,
-            quantity: item.quantity
-        }));
+        // Compute totals
+        let subtotal = 0;
+        cart.forEach(item => { subtotal += item.price * item.quantity; });
+        
+        const discountAmount = (subtotal * discountRate) / 100;
+        const select = document.getElementById('orderBranchSelect');
+        const selectedOption = select?.options[select.selectedIndex];
+        let distance = 0;
+        if (isDelivery && selectedOption) {
+            distance = parseFloat(selectedOption.dataset.distance) || 0;
+        }
+        const deliveryFee = isDelivery ? (distance * 10) : 0;
+        const totalAmount = subtotal - discountAmount + deliveryFee;
+        const pointsEarned = Math.floor(totalAmount / 100);
 
-        const btn = document.getElementById('confirmOrderBtn');
+        // Build confirmation body
+        let itemsHtml = '';
+        cart.forEach(item => {
+            const subtotalItem = item.price * item.quantity;
+            itemsHtml += `
+                <div class="order-summary-item">
+                    <span>${item.name} × ${item.quantity}</span>
+                    <span>₱${subtotalItem.toFixed(2)}</span>
+                </div>
+            `;
+        });
+
+        let summaryHtml = `
+            <div class="summary-row">
+                <span class="label">Subtotal</span>
+                <span class="value">₱${subtotal.toFixed(2)}</span>
+            </div>
+        `;
+
+        if (discountAmount > 0) {
+            summaryHtml += `
+                <div class="summary-row">
+                    <span class="label">Discount (${discountRate}%)</span>
+                    <span class="value discount">-₱${discountAmount.toFixed(2)}</span>
+                </div>
+            `;
+        }
+
+        if (deliveryFee > 0) {
+            summaryHtml += `
+                <div class="summary-row">
+                    <span class="label">Delivery Fee (${distance.toFixed(1)} km)</span>
+                    <span class="value delivery">₱${deliveryFee.toFixed(2)}</span>
+                </div>
+            `;
+        }
+
+        summaryHtml += `
+            <div class="summary-total">
+                <span>Total</span>
+                <span>₱${totalAmount.toFixed(2)}</span>
+            </div>
+            <div class="summary-row" style="border-top:1px solid #eee;padding-top:4px;margin-top:4px;">
+                <span class="label">Points to earn</span>
+                <span class="value">${pointsEarned}</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">Branch</span>
+                <span class="value">${selectedOption?.text || 'N/A'}</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">Type</span>
+                <span class="value">${isDelivery ? 'Delivery' : 'Pickup'}</span>
+            </div>
+            ${isDelivery ? `
+            <div class="summary-row">
+                <span class="label">Address</span>
+                <span class="value" style="font-size:12px;">${customerAddress}</span>
+            </div>
+            ` : ''}
+        `;
+
+        document.getElementById('confirmationBody').innerHTML = `
+            <div style="margin-bottom:10px;font-weight:600;color:#333;">Items</div>
+            ${itemsHtml}
+            <div style="margin-top:12px;padding-top:10px;border-top:1px solid #eee;">
+                ${summaryHtml}
+            </div>
+        `;
+
+        // Store order data for placeOrder
+        orderData = {
+            branchId: parseInt(branchId),
+            isDelivery: isDelivery,
+            notes: notes || null,
+            items: cart.map(item => ({ product_id: item.id, quantity: item.quantity }))
+        };
+
+        document.getElementById('confirmationModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeConfirmationModal() {
+        document.getElementById('confirmationModal').classList.remove('show');
+        document.body.style.overflow = '';
+        orderData = null;
+    }
+
+    // ============= PLACE ORDER =============
+    function placeOrder() {
+        if (!orderData) return;
+
+        const btn = document.getElementById('confirmPlaceBtn');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
 
@@ -1502,95 +1964,162 @@
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             body: JSON.stringify({
-                items: items,
-                branch_id: parseInt(branchId),
-                delivery_address: isDelivery ? customerAddress : null,
-                notes: notes || null
+                items: orderData.items,
+                branch_id: orderData.branchId,
+                is_delivery: orderData.isDelivery,
+                delivery_address: orderData.isDelivery ? customerAddress : null,
+                notes: orderData.notes
             })
         })
         .then(response => response.json())
         .then(data => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle me-2"></i> Confirm Order';
+            btn.innerHTML = '<i class="fas fa-check me-1"></i> Confirm Order';
+            closeConfirmationModal();
             
             if (data.success) {
-                alert(`✅ Order placed! #${data.order_id}\nTotal: ₱${data.total.toFixed(2)}\nPoints Earned: ${data.points_earned}`);
+                const details = `
+                    <div class="detail-row">
+                        <span class="label">Order #</span>
+                        <span class="value">${data.order_id}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Total</span>
+                        <span class="value text-success">₱${data.total.toFixed(2)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Points Earned</span>
+                        <span class="value">+${data.points_earned}</span>
+                    </div>
+                    ${data.delivery_fee > 0 ? `
+                    <div class="detail-row">
+                        <span class="label">Delivery Fee</span>
+                        <span class="value">₱${data.delivery_fee.toFixed(2)}</span>
+                    </div>
+                    ` : ''}
+                `;
+                
+                showFeedback('success', 'Order Placed!', `Your order #${data.order_id} has been placed successfully.`, details);
+                
                 cart = [];
                 updateCart();
                 document.getElementById('orderNotes').value = '';
                 document.getElementById('deliveryCheck').checked = false;
                 closeOrderModal();
-                location.reload();
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 3000);
             } else {
-                alert('❌ ' + data.message);
+                if (data.message.includes('out of stock') || data.message.includes('stock')) {
+                    showFeedback('error', 'Out of Stock', data.message);
+                } else {
+                    showFeedback('error', 'Order Failed', data.message);
+                }
             }
         })
         .catch(error => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle me-2"></i> Confirm Order';
-            alert('Error: ' + error);
+            btn.innerHTML = '<i class="fas fa-check me-1"></i> Confirm Order';
+            closeConfirmationModal();
+            showFeedback('error', 'Error', 'An error occurred while placing your order. Please try again.');
         });
     }
 
-    // ============= SLIDESHOW =============
-    function startSlideshow() {
-        slideInterval = setInterval(nextSlide, 4000);
+    // Close confirmation modal on outside click
+    document.getElementById('confirmationModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeConfirmationModal();
+        }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeConfirmationModal();
+            closeFeedbackModal();
+        }
+    });
+
+    // ============= FEEDBACK MODAL FUNCTIONS =============
+    function showFeedback(type, title, message, details = '') {
+        const modal = document.getElementById('feedbackModal');
+        const icon = document.getElementById('feedbackIcon');
+        const titleEl = document.getElementById('feedbackTitle');
+        const msgEl = document.getElementById('feedbackMessage');
+        const detailsEl = document.getElementById('feedbackDetails');
+        const btn = document.getElementById('feedbackBtn');
+        const content = modal.querySelector('.feedback-modal-content');
+        
+        content.className = 'feedback-modal-content';
+        icon.className = 'feedback-icon';
+        
+        const types = {
+            success: { icon: 'fa-check-circle', color: '#28a745', btnClass: 'btn-success', btnText: 'Continue' },
+            error: { icon: 'fa-times-circle', color: '#dc3545', btnClass: 'btn-danger', btnText: 'Try Again' },
+            warning: { icon: 'fa-exclamation-triangle', color: '#ffc107', btnClass: 'btn-warning', btnText: 'OK' },
+            info: { icon: 'fa-info-circle', color: '#17a2b8', btnClass: 'btn-primary', btnText: 'OK' }
+        };
+        
+        const t = types[type] || types.info;
+        
+        content.classList.add(type);
+        icon.className = 'feedback-icon ' + type;
+        icon.innerHTML = `<i class="fas ${t.icon}" style="color:${t.color}"></i>`;
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+        
+        if (details) {
+            detailsEl.innerHTML = details;
+            detailsEl.style.display = 'block';
+        } else {
+            detailsEl.style.display = 'none';
+        }
+        
+        btn.className = 'feedback-btn ' + t.btnClass;
+        btn.innerHTML = `<i class="fas fa-check me-2"></i> ${t.btnText}`;
+        
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
     }
 
-    function nextSlide() {
-        const slides = document.querySelectorAll('.slide');
-        const dots = document.querySelectorAll('.dot');
-        if (slides.length === 0) return;
-        slides.forEach(s => s.classList.remove('active'));
-        dots.forEach(d => d.classList.remove('active'));
-        slideIndex = (slideIndex + 1) % slides.length;
-        if (slides[slideIndex]) slides[slideIndex].classList.add('active');
-        if (dots[slideIndex]) dots[slideIndex].classList.add('active');
+    function closeFeedbackModal() {
+        const modal = document.getElementById('feedbackModal');
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
     }
 
-    function goToSlide(index) {
-        clearInterval(slideInterval);
-        const slides = document.querySelectorAll('.slide');
-        const dots = document.querySelectorAll('.dot');
-        slides.forEach(s => s.classList.remove('active'));
-        dots.forEach(d => d.classList.remove('active'));
-        slideIndex = index;
-        if (slides[index]) slides[index].classList.add('active');
-        if (dots[index]) dots[index].classList.add('active');
-        startSlideshow();
-    }
+    document.getElementById('feedbackModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeFeedbackModal();
+        }
+    });
 
     // ============= SEARCH =============
     document.getElementById('searchProduct')?.addEventListener('keyup', function() {
         const search = this.value.toLowerCase();
         document.querySelectorAll('.product-item').forEach(item => {
             const name = item.getAttribute('data-name') || '';
-            const matches = name.includes(search);
-            item.style.display = matches ? '' : 'none';
+            item.style.display = name.includes(search) ? '' : 'none';
         });
     });
 
     // ============= INIT =============
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded, initializing...');
         getLocation();
+        updateSlides();
         startSlideshow();
         updateCart();
         checkCustomerAddress();
         updateAvailableCount();
     });
 
-    // Close modals on outside click
     document.getElementById('orderModal')?.addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeOrderModal();
-        }
+        if (e.target === this) closeOrderModal();
     });
     
     document.getElementById('branchAvailabilityModal')?.addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeBranchModal();
-        }
+        if (e.target === this) closeBranchModal();
     });
 </script>
 @endpush
