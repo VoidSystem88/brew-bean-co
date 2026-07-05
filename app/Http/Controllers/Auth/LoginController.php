@@ -23,14 +23,13 @@ class LoginController extends Controller
         if (Auth::attempt($credentials, $request->filled('remember'))) {
             $request->session()->regenerate();
             
-            // Redirect based on role
             $user = Auth::user();
             
-            if ($user->isStaff()) {
-                return redirect()->intended('/staff/dashboard');
-            } elseif ($user->isManager()) {
-                return redirect()->intended('/dashboard');
+            // Redirect based on role
+            if ($user->isDelivery()) {
+                return redirect()->intended('/delivery/dashboard');
             } else {
+                // All other roles (admin, manager, staff) go to main dashboard
                 return redirect()->intended('/dashboard');
             }
         }

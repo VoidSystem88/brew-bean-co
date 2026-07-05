@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Sale;
 use App\Models\Branch;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,11 @@ class OrderQueueController extends Controller
         
         $sales = $sales->get();
         
+        // Get delivery riders for assignment
+        $deliveryRiders = User::where('role', 'delivery')
+            ->where('is_active', true)
+            ->get();
+        
         // Separate in-store and online orders
         $inStore = [
             'pending' => [],
@@ -50,39 +56,27 @@ class OrderQueueController extends Controller
         ];
         
         foreach ($sales as $sale) {
-            // CHECK: Online order if may delivery_address OR delivery_status is not null
-            // Or kung galing sa customer order (user_id is null and customer_id is not null)
+            // CHECK: Online order if may delivery_address
             $isOnline = false;
             
-            // Check if this is a customer order (online)
             if ($sale->customer_id && $sale->user_id === null) {
                 $isOnline = true;
             }
             
-            // Check if may delivery address
             if (!empty($sale->delivery_address)) {
                 $isOnline = true;
             }
             
-            // Check if delivery_status is set
             if ($sale->delivery_status && $sale->delivery_status !== 'completed') {
                 $isOnline = true;
             }
             
-            // Check if walkin_name is null and customer exists (online order)
-            if ($sale->customer_id && !$sale->walkin_name) {
-                $isOnline = true;
-            }
-            
-            // FORCE: If may customer_id at walang walkin_name, it's online
-            // If may walkin_name, it's physical
-            // If may customer_id pero from POS (may user_id), it's physical
             if ($sale->walkin_name) {
-                $isOnline = false; // Walk-in orders are physical
+                $isOnline = false;
             }
             
             if ($sale->user_id !== null && $sale->customer_id !== null) {
-                $isOnline = false; // POS orders with customer are physical
+                $isOnline = false;
             }
             
             foreach ($sale->orders as $order) {
@@ -110,7 +104,11 @@ class OrderQueueController extends Controller
                     'order_type' => $isOnline ? 'Online' : 'In-Store',
                     'is_online' => $isOnline,
                     'has_delivery' => !empty($sale->delivery_address),
-                    'customer_type' => $sale->walkin_name ? 'Walk-in' : ($sale->customer_id ? 'Member' : 'Guest')
+                    'customer_type' => $sale->walkin_name ? 'Walk-in' : ($sale->customer_id ? 'Member' : 'Guest'),
+                    'delivery_status' => $sale->delivery_status ?? 'pending',
+                    'delivery_person_id' => $sale->delivery_person_id,
+                    'delivery_address' => $sale->delivery_address,
+                    'delivery_riders' => $deliveryRiders
                 ];
                 
                 if ($isOnline) {

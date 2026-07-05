@@ -13,7 +13,7 @@ class StaffController extends Controller
     public function index()
     {
         $staff = User::with('branch')
-            ->whereIn('role', ['manager', 'staff'])
+            ->whereIn('role', ['admin', 'manager', 'staff', 'delivery'])
             ->paginate(10);
         return view('staff.index', compact('staff'));
     }
@@ -30,7 +30,7 @@ class StaffController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
-            'role' => ['required', Rule::in(['manager', 'staff'])],
+            'role' => ['required', Rule::in(['admin', 'manager', 'staff', 'delivery'])],
             'branch_id' => 'required|exists:branches,id',
         ]);
 
@@ -39,8 +39,13 @@ class StaffController extends Controller
 
         User::create($validated);
 
+        $roleName = ucfirst($validated['role']);
+        if ($roleName === 'Delivery') {
+            $roleName = 'Delivery Rider';
+        }
+
         return redirect()->route('staff.index')
-            ->with('success', 'Staff member created successfully.');
+            ->with('success', $roleName . ' created successfully.');
     }
 
     public function edit(User $staff)
@@ -54,15 +59,21 @@ class StaffController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($staff->id)],
-            'role' => ['required', Rule::in(['manager', 'staff'])],
+            'role' => ['required', Rule::in(['admin', 'manager', 'staff', 'delivery'])],
             'branch_id' => 'required|exists:branches,id',
         ]);
 
         if ($request->filled('password')) {
             $validated['password'] = Hash::make($request->password);
+            $staff->update($validated);
+        } else {
+            $staff->update([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'role' => $validated['role'],
+                'branch_id' => $validated['branch_id'],
+            ]);
         }
-
-        $staff->update($validated);
 
         return redirect()->route('staff.index')
             ->with('success', 'Staff member updated successfully.');

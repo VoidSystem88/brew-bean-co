@@ -18,23 +18,26 @@ class Sale extends Model
         'original_amount',
         'discount_amount',
         'discount_rate',
-        'delivery_fee',
-        'delivery_distance_km',
         'sale_date',
         'sync_status',
-        'order_status',
-        'payment_method',
-        'amount_paid',
-        'change_amount',
         'delivery_address',
         'delivery_status',
         'order_notes',
+        'delivery_person_id',
+        'delivery_assigned_at',
+        'delivery_picked_up_at',
+        'delivery_completed_at',
+        'delivery_notes',
+        'cancelled_at',
+        'cancelled_by',
+        'cancellation_reason',
+        'refund_status',
+        'refund_amount',
+        'refund_date'
     ];
 
     protected $casts = [
         'sale_date' => 'datetime',
-        'delivery_fee' => 'decimal:2',
-        'delivery_distance_km' => 'decimal:2',
     ];
 
     public function branch()
@@ -60,6 +63,11 @@ class Sale extends Model
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function deliveryPerson()
+    {
+        return $this->belongsTo(User::class, 'delivery_person_id');
     }
 
     public function getCustomerNameAttribute()

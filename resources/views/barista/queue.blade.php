@@ -403,39 +403,20 @@
         color: white;
     }
     
-    /* Receipt Modal */
-    .receipt-modal .modal-content {
+    .btn-assign-rider {
+        background: #6F4E37;
+        color: white;
+        border: none;
+        padding: 4px 14px;
         border-radius: 12px;
-        max-width: 400px;
-        margin: 0 auto;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
     }
-    .receipt-modal .modal-body {
-        padding: 20px;
-        font-family: 'Courier New', monospace;
-    }
-    .receipt-modal .receipt-header {
-        text-align: center;
-        border-bottom: 2px dashed #333;
-        padding-bottom: 10px;
-        margin-bottom: 10px;
-    }
-    .receipt-modal .receipt-header .store-name {
-        font-size: 18px;
-        font-weight: 700;
-        color: #6F4E37;
-    }
-    .receipt-modal .receipt-item {
-        display: flex;
-        justify-content: space-between;
-        font-size: 12px;
-        padding: 2px 0;
-    }
-    .receipt-modal .receipt-total {
-        font-weight: 700;
-        font-size: 16px;
-        border-top: 2px solid #333;
-        padding-top: 6px;
-        margin-top: 6px;
+    .btn-assign-rider:hover {
+        background: #5a3d2b;
+        color: white;
     }
     
     .notification-toast {
@@ -620,7 +601,7 @@
             </div>
             <div class="queue-column status-deliver" id="onlineDeliver">
                 <div class="column-title">
-                    <i class="fas fa-truck"></i> Deliver
+                    <i class="fas fa-truck"></i> Assign Rider
                     <span class="count" id="onlineDeliverCount">0</span>
                 </div>
                 <div id="onlineDeliverList">
@@ -634,25 +615,32 @@
     </div>
 </div>
 
-<!-- Receipt Modal -->
-<div class="modal fade receipt-modal" id="receiptModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
+<!-- Assign Rider Modal -->
+<div class="modal fade" id="assignRiderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Receipt</h5>
+                <h5 class="modal-title"><i class="fas fa-truck me-2"></i>Assign Delivery Rider</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="receiptContent">
-                <div class="text-center py-3">
-                    <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
-                    <p class="mt-2">Loading receipt...</p>
+            <div class="modal-body">
+                <input type="hidden" id="assign_sale_id">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Select Rider</label>
+                    <select id="rider_select" class="form-select">
+                        <option value="">-- Select Rider --</option>
+                    </select>
+                </div>
+                <div class="text-muted" style="font-size:12px;">
+                    <i class="fas fa-info-circle"></i> 
+                    Only delivery riders will appear in the list.
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary btn-sm" onclick="window.print()">
-                    <i class="fas fa-print"></i> Print
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmAssignRider()">
+                    <i class="fas fa-check me-1"></i> Assign Rider
                 </button>
-                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -799,11 +787,19 @@
         }
         
         if (status === 'ready') {
-            buttons += `
-                <button class="btn-complete-order" onclick="completeOrder(${saleId})">
-                    <i class="fas fa-check-double"></i> Complete & Receipt
-                </button>
-            `;
+            if (isOnline) {
+                buttons += `
+                    <button class="btn-assign-rider" onclick="assignRider(${saleId})">
+                        <i class="fas fa-truck"></i> Assign Rider
+                    </button>
+                `;
+            } else {
+                buttons += `
+                    <button class="btn-complete-order" onclick="completeOrder(${saleId})">
+                        <i class="fas fa-check-double"></i> Complete
+                    </button>
+                `;
+            }
         }
         
         if (status !== 'completed' && status !== 'cancelled') {
@@ -821,6 +817,93 @@
         `;
         
         return buttons;
+    }
+
+    // ============= ASSIGN RIDER =============
+    function assignRider(saleId) {
+        const modal = new bootstrap.Modal(document.getElementById('assignRiderModal'));
+        document.getElementById('assign_sale_id').value = saleId;
+        
+        const select = document.getElementById('rider_select');
+        select.innerHTML = '<option value="">Loading riders...</option>';
+        select.disabled = true;
+        
+        fetch('/delivery/riders', {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            select.innerHTML = '<option value="">-- Select Rider --</option>';
+            if (data.success && data.riders && data.riders.length > 0) {
+                data.riders.forEach(rider => {
+                    const option = document.createElement('option');
+                    option.value = rider.id;
+                    option.textContent = rider.name + ' (' + rider.email + ')';
+                    select.appendChild(option);
+                });
+                select.disabled = false;
+            } else {
+                select.innerHTML = '<option value="">No riders available</option>';
+                select.disabled = true;
+            }
+        })
+        .catch(() => {
+            select.innerHTML = '<option value="">Error loading riders</option>';
+            select.disabled = true;
+        });
+        
+        modal.show();
+    }
+
+    function confirmAssignRider() {
+        const saleId = document.getElementById('assign_sale_id').value;
+        const riderId = document.getElementById('rider_select').value;
+        
+        if (!riderId) {
+            alert('Please select a rider.');
+            return;
+        }
+        
+        const btn = document.querySelector('#assignRiderModal .btn-primary');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Assigning...';
+        
+        fetch('/delivery/assign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                sale_id: parseInt(saleId),
+                delivery_person_id: parseInt(riderId)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i> Assign Rider';
+            
+            if (data.success) {
+                alert('✅ ' + data.message);
+                bootstrap.Modal.getInstance(document.getElementById('assignRiderModal')).hide();
+                loadQueue();
+            } else {
+                alert('❌ ' + data.message);
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i> Assign Rider';
+            alert('Error: ' + error);
+        });
     }
 
     function viewOrder(saleId) {
@@ -895,7 +978,7 @@
     }
 
     function completeOrder(saleId) {
-        if (!confirm('Complete this order and generate receipt?')) return;
+        if (!confirm('Complete this order?')) return;
         
         const btn = document.querySelector(`[onclick*="completeOrder(${saleId})"]`);
         if (btn) {
@@ -915,10 +998,6 @@
             if (data.success) {
                 showNotification('Order completed!');
                 loadQueue();
-                
-                if (data.receipt_url) {
-                    showReceipt(data.receipt_url);
-                }
             } else {
                 alert('Error: ' + data.message);
             }
@@ -927,40 +1006,9 @@
             alert('Error completing order');
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = 'Complete & Receipt';
+                btn.innerHTML = 'Complete';
             }
         });
-    }
-
-    function showReceipt(receiptUrl) {
-        const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
-        const content = document.getElementById('receiptContent');
-        
-        content.innerHTML = `
-            <div class="text-center py-3">
-                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
-                <p class="mt-2">Loading receipt...</p>
-            </div>
-        `;
-        
-        modal.show();
-        
-        fetch(receiptUrl)
-            .then(response => response.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const receiptBody = doc.querySelector('.receipt-container') || doc.body;
-                content.innerHTML = receiptBody.innerHTML;
-            })
-            .catch(() => {
-                content.innerHTML = `
-                    <div class="text-center py-3 text-danger">
-                        <i class="fas fa-exclamation-circle fa-2x"></i>
-                        <p class="mt-2">Error loading receipt</p>
-                    </div>
-                `;
-            });
     }
 
     function cancelOrder(saleId) {

@@ -454,8 +454,10 @@
             .sidebar .sidebar-footer .user-info { justify-content: center; }
             .main-content { margin-left: var(--sidebar-collapsed); }
             .main-content .top-bar .search-container { max-width: 200px; }
-            .main-content .top-bar .connection-status .status-text { display: none; }
-            .main-content .top-bar .right-section .time-display { display: none; }
+            .main-content .top-bar .connection-status .status-text { display: inline; }
+            .main-content .top-bar .right-section .time-display { display: inline; }
+            .main-content .top-bar .connection-status { padding: 2px 8px; font-size: 11px; }
+            .main-content .top-bar .right-section .time-display { font-size: 11px; }
         }
         
         @media (max-width: 576px) {
@@ -469,9 +471,14 @@
             .sidebar.open .nav-link { justify-content: flex-start; padding: 10px 20px; }
             .sidebar.open .sidebar-footer .user-info { justify-content: flex-start; }
             .main-content { margin-left: 0; }
-            .main-content .top-bar { padding: 8px 12px; flex-wrap: wrap; }
-            .main-content .top-bar .search-container { max-width: 100%; flex: 1 1 100%; order: 3; }
+            .main-content .top-bar { padding: 6px 10px; flex-wrap: wrap; gap: 4px; }
+            .main-content .top-bar .search-container { max-width: 100%; flex: 1 1 100%; order: 3; margin-top: 4px; }
             .main-content .top-bar .left-section { flex: 0 1 auto; min-width: auto; }
+            .main-content .top-bar .connection-status .status-text { display: inline; font-size: 10px; }
+            .main-content .top-bar .right-section .time-display { display: inline; font-size: 10px; }
+            .main-content .top-bar .connection-status { padding: 2px 6px; font-size: 10px; }
+            .main-content .top-bar .connection-status .dot { width: 6px; height: 6px; }
+            .main-content .top-bar .right-section { gap: 6px; }
             .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
                 background: rgba(0,0,0,0.4); z-index: 999; }
             .sidebar-overlay.show { display: block; }
@@ -514,96 +521,124 @@
                 $isAdmin = $user && $user->role === 'admin';
                 $isManager = $user && $user->role === 'manager';
                 $isStaff = $user && $user->role === 'staff';
+                $isDelivery = $user && $user->role === 'delivery';
             @endphp
 
-            <!-- MAIN - Visible to ALL -->
-            <div class="nav-section">Main</div>
-            <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                <i class="fas fa-chart-pie"></i>
-                <span>Dashboard</span>
-            </a>
-                 
-            @if($isStaff)
-                <a href="{{ route('pos.index') }}" class="nav-link {{ request()->routeIs('pos.*') ? 'active' : '' }}">
-                    <i class="fas fa-cash-register"></i>
-                    <span>Point of Sale</span>
-                </a>
-                
-                <a href="{{ route('barista.queue') }}" class="nav-link {{ request()->routeIs('barista.*') ? 'active' : '' }}">
-                    <i class="fas fa-clock"></i>
-                    <span>Order Queue</span>
-                    <span class="badge" id="queueBadge">0</span>
-                </a>
-            @endif
-
-            <!-- INVENTORY - Visible to ALL -->
-            <div class="nav-section">Inventory</div>
-            <a href="{{ route('delivery.index') }}" class="nav-link {{ request()->routeIs('delivery.*') ? 'active' : '' }}">
-                <i class="fas fa-truck"></i>
-                <span>Delivery</span>
-            </a>
-            <a href="{{ route('inventory.index') }}" class="nav-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
-                <i class="fas fa-boxes"></i>
-                <span>Inventory</span>
-            </a>
-            <a href="{{ route('recipes.index') }}" class="nav-link {{ request()->routeIs('recipes.*') ? 'active' : '' }}">
-                <i class="fas fa-utensils"></i>
-                <span>Recipes</span>
-            </a>
-
-            <!-- CUSTOMERS - Visible to ALL -->
-            <div class="nav-section">Customers</div>
-            <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
-                <i class="fas fa-user-friends"></i>
-                <span>Customers</span>
-            </a>
-
-            <!-- MANAGEMENT - Admin/Manager ONLY -->
-            @if($isAdmin || $isManager)
-                <div class="nav-section">Management</div>
-                <a href="{{ route('branches.index') }}" class="nav-link {{ request()->routeIs('branches.*') ? 'active' : '' }}">
-                    <i class="fas fa-store"></i>
-                    <span>Branches</span>
-                </a>
-                <a href="{{ route('staff.index') }}" class="nav-link {{ request()->routeIs('staff.*') ? 'active' : '' }}">
-                    <i class="fas fa-users"></i>
-                    <span>Staff</span>
-                </a>
-                <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
-                    <i class="fas fa-box"></i>
-                    <span>Products</span>
-                </a>
-                <a href="{{ route('suppliers.index') }}" class="nav-link {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
+            @if($isDelivery)
+                <!-- DELIVERY - Only My Deliveries -->
+                <div class="nav-section">Delivery</div>
+                <a href="{{ route('delivery.dashboard') }}" class="nav-link {{ request()->routeIs('delivery.dashboard') ? 'active' : '' }}">
                     <i class="fas fa-truck"></i>
-                    <span>Suppliers</span>
+                    <span>My Deliveries</span>
                 </a>
-                <a href="{{ route('warehouse.index') }}" class="nav-link {{ request()->routeIs('warehouse.*') ? 'active' : '' }}">
-                    <i class="fas fa-warehouse"></i>
-                    <span>Warehouse</span>
+            @else
+                <!-- MAIN -->
+                <div class="nav-section">Main</div>
+                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
                 </a>
-            @endif
 
-            <!-- REPORTS - Admin/Manager ONLY -->
-            @if($isAdmin || $isManager)
-                <div class="nav-section">Reports</div>
-                <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-                
-            @endif
+                <!-- OPERATIONS -->
+                @if($isStaff || $isAdmin || $isManager)
+                    <div class="nav-section">Operations</div>
+                    @if(!$isStaff)
+                        <a href="{{ route('staff.dashboard') }}" class="nav-link {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>Staff Dashboard</span>
+                        </a>
+                    @endif
+                    
+                    @if($isStaff)
+                        <a href="{{ route('pos.index') }}" class="nav-link {{ request()->routeIs('pos.*') ? 'active' : '' }}">
+                            <i class="fas fa-cash-register"></i>
+                            <span>Point of Sale</span>
+                        </a>
+                        
+                        <a href="{{ route('barista.queue') }}" class="nav-link {{ request()->routeIs('barista.*') ? 'active' : '' }}">
+                            <i class="fas fa-clock"></i>
+                            <span>Order Queue</span>
+                            <span class="badge" id="queueBadge">0</span>
+                        </a>
+                    @endif
+                @endif
 
-            <!-- SYSTEM - Admin ONLY -->
-            @if($isAdmin)
-                <div class="nav-section">System</div>
-                <a href="{{ route('admin.settings') }}" class="nav-link {{ request()->routeIs('admin.settings') ? 'active' : '' }}">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
-                </a>
-                <a href="{{ route('admin.database') }}" class="nav-link {{ request()->routeIs('admin.database') ? 'active' : '' }}">
-                    <i class="fas fa-database"></i>
-                    <span>Database</span>
-                </a>
+                <!-- INVENTORY -->
+                @if($isStaff || $isAdmin || $isManager)
+                    <div class="nav-section">Inventory</div>
+                    <a href="{{ route('delivery.index') }}" class="nav-link {{ request()->routeIs('delivery.*') ? 'active' : '' }}">
+                        <i class="fas fa-truck"></i>
+                        <span>Delivery</span>
+                    </a>
+                    <a href="{{ route('inventory.index') }}" class="nav-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
+                        <i class="fas fa-boxes"></i>
+                        <span>Inventory</span>
+                    </a>
+                    <a href="{{ route('recipes.index') }}" class="nav-link {{ request()->routeIs('recipes.*') ? 'active' : '' }}">
+                        <i class="fas fa-utensils"></i>
+                        <span>Recipes</span>
+                    </a>
+                @endif
+
+                <!-- CUSTOMERS -->
+                @if($isStaff || $isAdmin || $isManager)
+                    <div class="nav-section">Customers</div>
+                    <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
+                        <i class="fas fa-user-friends"></i>
+                        <span>Customers</span>
+                    </a>
+                @endif
+
+                <!-- MANAGEMENT -->
+                @if($isAdmin || $isManager)
+                    <div class="nav-section">Management</div>
+                    <a href="{{ route('branches.index') }}" class="nav-link {{ request()->routeIs('branches.*') ? 'active' : '' }}">
+                        <i class="fas fa-store"></i>
+                        <span>Branches</span>
+                    </a>
+                    <a href="{{ route('staff.index') }}" class="nav-link {{ request()->routeIs('staff.*') ? 'active' : '' }}">
+                        <i class="fas fa-users"></i>
+                        <span>Staff</span>
+                    </a>
+                    <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
+                        <i class="fas fa-box"></i>
+                        <span>Products</span>
+                    </a>
+                    <a href="{{ route('suppliers.index') }}" class="nav-link {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
+                        <i class="fas fa-truck"></i>
+                        <span>Suppliers</span>
+                    </a>
+                    <a href="{{ route('warehouse.index') }}" class="nav-link {{ request()->routeIs('warehouse.*') ? 'active' : '' }}">
+                        <i class="fas fa-warehouse"></i>
+                        <span>Warehouse</span>
+                    </a>
+                @endif
+
+                <!-- REPORTS -->
+                @if($isAdmin || $isManager)
+                    <div class="nav-section">Reports</div>
+                    <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Reports</span>
+                    </a>
+                    <a href="{{ route('sync.index') }}" class="nav-link {{ request()->routeIs('sync.*') ? 'active' : '' }}">
+                        <i class="fas fa-sync"></i>
+                        <span>Sync</span>
+                    </a>
+                @endif
+
+                <!-- SYSTEM -->
+                @if($isAdmin)
+                    <div class="nav-section">System</div>
+                    <a href="{{ route('admin.settings') }}" class="nav-link {{ request()->routeIs('admin.settings') ? 'active' : '' }}">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                    <a href="{{ route('admin.database') }}" class="nav-link {{ request()->routeIs('admin.database') ? 'active' : '' }}">
+                        <i class="fas fa-database"></i>
+                        <span>Database</span>
+                    </a>
+                @endif
             @endif
 
             <div class="sidebar-footer">
@@ -634,14 +669,16 @@
                         <i class="fas fa-bars"></i>
                     </button>
                     
-                    <div class="search-container">
-                        <i class="fas fa-search search-icon"></i>
-                        <input type="text" class="search-input" id="globalSearch" placeholder="Search products, customers, orders..." autocomplete="off">
-                        <span class="search-clear" id="searchClear" onclick="clearSearch()">
-                            <i class="fas fa-times-circle"></i>
-                        </span>
-                        <div class="search-results" id="searchResults"></div>
-                    </div>
+                    @if(!$isDelivery)
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="search-input" id="globalSearch" placeholder="Search products, customers, orders..." autocomplete="off">
+                            <span class="search-clear" id="searchClear" onclick="clearSearch()">
+                                <i class="fas fa-times-circle"></i>
+                            </span>
+                            <div class="search-results" id="searchResults"></div>
+                        </div>
+                    @endif
                 </div>
                 
                 <div class="right-section">

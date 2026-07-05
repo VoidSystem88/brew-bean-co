@@ -57,7 +57,6 @@
                     <tbody>
                         @forelse($staff as $member)
                         @php
-                            // Extract location from branch name
                             $location = '';
                             if ($member->branch) {
                                 $location = str_replace('☕ Brew & Bean Co. - ', '', $member->branch->name);
@@ -92,6 +91,8 @@
                                     <span class="badge bg-warning text-dark">Manager</span>
                                 @elseif($member->role === 'staff')
                                     <span class="badge bg-info">Staff</span>
+                                @elseif($member->role === 'delivery')
+                                    <span class="badge bg-success">Delivery Rider</span>
                                 @else
                                     <span class="badge bg-secondary">{{ $member->role }}</span>
                                 @endif

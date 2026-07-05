@@ -42,7 +42,6 @@
     .track-header .order-status.completed { background: #d4edda; color: #155724; }
     .track-header .order-status.cancelled { background: #f8d7da; color: #721c24; }
     
-    /* Timeline */
     .timeline {
         position: relative;
         padding: 20px 0;
@@ -121,12 +120,6 @@
         margin-top: 2px;
     }
     
-    .timeline-item .content .description {
-        font-size: 13px;
-        color: #666;
-        margin-top: 4px;
-    }
-    
     .timeline-item .content .title.completed {
         color: #28a745;
     }
@@ -139,11 +132,6 @@
         color: #856404;
     }
     
-    .timeline-item .content .title.inactive {
-        color: #ccc;
-    }
-    
-    /* Order Details */
     .order-details-card {
         background: white;
         border-radius: 12px;
@@ -164,31 +152,6 @@
         border-bottom: none;
     }
     
-    .order-details-card .detail-row .label {
-        color: #999;
-    }
-    
-    .order-details-card .detail-row .value {
-        font-weight: 500;
-        color: #333;
-    }
-    
-    .order-items-list {
-        margin-top: 12px;
-    }
-    
-    .order-items-list .item {
-        display: flex;
-        justify-content: space-between;
-        padding: 4px 0;
-        font-size: 13px;
-        border-bottom: 1px solid #f5f5f5;
-    }
-    
-    .order-items-list .item:last-child {
-        border-bottom: none;
-    }
-    
     .refresh-btn {
         background: #6F4E37;
         color: white;
@@ -199,37 +162,8 @@
         cursor: pointer;
         transition: 0.2s;
     }
-    
-    .refresh-btn:hover {
-        background: #5a3d2b;
-    }
-    .refresh-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-    
-    .delivery-map {
-        height: 200px;
-        border-radius: 10px;
-        overflow: hidden;
-        border: 1px solid #e8e8e8;
-        margin-top: 15px;
-        background: #f8f6f4;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .delivery-map .placeholder {
-        color: #ccc;
-        text-align: center;
-    }
-    
-    .delivery-map .placeholder i {
-        font-size: 48px;
-        display: block;
-        margin-bottom: 8px;
-    }
+    .refresh-btn:hover { background: #5a3d2b; }
+    .refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     
     @media (max-width: 576px) {
         .track-header {
@@ -261,7 +195,7 @@
             </div>
         </div>
         <div>
-            <span class="order-status {{ $status }}">
+            <span class="order-status {{ $status }}" id="orderStatusBadge">
                 <i class="fas {{ $statuses[$status]['icon'] ?? 'fa-info-circle' }} me-1"></i>
                 {{ $statuses[$status]['label'] ?? ucfirst($status) }}
             </span>
@@ -272,7 +206,7 @@
     </div>
 
     <!-- Timeline -->
-    <div class="timeline">
+    <div class="timeline" id="timeline">
         @php
             $statusFlow = ['pending', 'preparing', 'ready', 'out_for_delivery', 'completed'];
             $currentIndex = array_search($status, $statusFlow);
@@ -288,56 +222,25 @@
                 $titleClass = $isCompleted ? 'completed' : ($isActive ? 'active' : 'inactive');
                 $statusLabel = $statuses[$step]['label'] ?? ucfirst($step);
                 $icon = $statuses[$step]['icon'] ?? 'fa-circle';
-                $color = $statuses[$step]['color'] ?? '#ccc';
-                
-                $timeText = '';
-                if ($isCompleted) {
-                    $timeText = 'Completed';
-                } elseif ($isActive) {
-                    $timeText = 'In progress';
-                } else {
-                    $timeText = 'Pending';
-                }
             @endphp
-            <div class="timeline-item">
-                <div class="icon-wrapper {{ $iconClass }}" style="border-color: {{ $isActive ? '#6F4E37' : ($isCompleted ? '#28a745' : '#e8e8e8') }}; background: {{ $isActive ? '#6F4E37' : ($isCompleted ? '#d4edda' : '#f5f5f5') }};">
+            <div class="timeline-item" data-index="{{ $index }}" data-status="{{ $step }}">
+                <div class="icon-wrapper {{ $iconClass }}">
                     <i class="fas {{ $icon }}"></i>
                 </div>
                 <div class="content">
                     <div class="title {{ $titleClass }}">{{ $statusLabel }}</div>
-                    <div class="time">
+                    <div class="time" id="time-{{ $step }}">
                         @if($isCompleted)
                             <i class="fas fa-check-circle" style="color:#28a745;"></i>
-                            {{ $order->updated_at->format('M d, Y h:i A') }}
+                            Completed
                         @elseif($isActive)
                             <i class="fas fa-spinner fa-spin" style="color:#6F4E37;"></i>
-                            {{ $timeText }}
+                            In progress
                         @else
                             <i class="far fa-clock" style="color:#ccc;"></i>
-                            {{ $timeText }}
+                            Pending
                         @endif
                     </div>
-                    @if($isActive && $step === 'out_for_delivery')
-                        <div class="description">
-                            <i class="fas fa-truck"></i> Your order is on its way!
-                            Estimated delivery: {{ $estimatedTime->format('h:i A') }}
-                        </div>
-                    @endif
-                    @if($isActive && $step === 'ready')
-                        <div class="description">
-                            <i class="fas fa-store"></i> Your order is ready for pickup
-                        </div>
-                    @endif
-                    @if($isActive && $step === 'preparing')
-                        <div class="description">
-                            <i class="fas fa-utensils"></i> Our baristas are preparing your order
-                        </div>
-                    @endif
-                    @if($isActive && $step === 'pending')
-                        <div class="description">
-                            <i class="fas fa-clipboard-check"></i> Order received, waiting for confirmation
-                        </div>
-                    @endif
                 </div>
             </div>
         @endforeach
@@ -371,7 +274,7 @@
                 Items
             </div>
             @foreach($order->orders as $item)
-                <div class="item">
+                <div class="item" style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid #f5f5f5;">
                     <span>{{ $item->product->name ?? 'Unknown' }} × {{ $item->quantity }}</span>
                     <span>₱{{ number_format(($item->product->price ?? 0) * $item->quantity, 2) }}</span>
                 </div>
@@ -383,6 +286,62 @@
 @push('scripts')
 <script>
     let refreshInterval = null;
+    let currentStatus = '{{ $status }}';
+    const statusFlow = ['pending', 'preparing', 'ready', 'out_for_delivery', 'completed'];
+
+    function updateTimeline(status) {
+        const currentIndex = statusFlow.indexOf(status);
+        const items = document.querySelectorAll('.timeline-item');
+        
+        items.forEach((item, index) => {
+            const icon = item.querySelector('.icon-wrapper');
+            const title = item.querySelector('.title');
+            const time = item.querySelector('.time');
+            
+            // Reset classes
+            icon.className = 'icon-wrapper';
+            title.className = 'title';
+            
+            if (index < currentIndex) {
+                // Completed
+                icon.classList.add('completed');
+                title.classList.add('completed');
+                if (time) {
+                    time.innerHTML = '<i class="fas fa-check-circle" style="color:#28a745;"></i> Completed';
+                }
+            } else if (index === currentIndex) {
+                // Active - In Progress
+                icon.classList.add('active');
+                title.classList.add('active');
+                if (time) {
+                    time.innerHTML = '<i class="fas fa-spinner fa-spin" style="color:#6F4E37;"></i> In progress';
+                }
+            } else {
+                // Pending
+                icon.classList.add('pending');
+                title.classList.add('inactive');
+                if (time) {
+                    time.innerHTML = '<i class="far fa-clock" style="color:#ccc;"></i> Pending';
+                }
+            }
+        });
+        
+        // Update status badge
+        const badge = document.getElementById('orderStatusBadge');
+        if (badge) {
+            const statusMap = {
+                'pending': { class: 'pending', label: 'Order Placed', icon: 'fa-clipboard-check' },
+                'preparing': { class: 'preparing', label: 'Preparing', icon: 'fa-utensils' },
+                'ready': { class: 'ready', label: 'Ready for Pickup', icon: 'fa-box' },
+                'out_for_delivery': { class: 'out_for_delivery', label: 'Out for Delivery', icon: 'fa-truck' },
+                'completed': { class: 'completed', label: 'Delivered', icon: 'fa-check-circle' },
+                'cancelled': { class: 'cancelled', label: 'Cancelled', icon: 'fa-times-circle' }
+            };
+            const info = statusMap[status] || statusMap['pending'];
+            badge.className = 'order-status ' + info.class;
+            badge.innerHTML = '<i class="fas ' + info.icon + ' me-1"></i> ' + info.label;
+        }
+    }
 
     function refreshStatus() {
         const btn = document.getElementById('refreshBtn');
@@ -392,31 +351,25 @@
         fetch('{{ route("customer.track.status", $order->id) }}')
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    // Reload page to show updated status
-                    location.reload();
+                if (data.success && data.status !== currentStatus) {
+                    currentStatus = data.status;
+                    updateTimeline(currentStatus);
                 }
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync"></i> Refresh';
             })
             .catch(() => {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-sync"></i> Refresh';
-                alert('Error refreshing status. Please try again.');
             });
     }
 
-    // Auto-refresh every 30 seconds
     document.addEventListener('DOMContentLoaded', function() {
-        refreshInterval = setInterval(() => {
-            fetch('{{ route("customer.track.status", $order->id) }}')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.status !== '{{ $status }}') {
-                        // Status changed, reload
-                        location.reload();
-                    }
-                })
-                .catch(() => {});
-        }, 30000);
+        // Initial update
+        updateTimeline(currentStatus);
+        
+        // Auto-refresh every 30 seconds
+        refreshInterval = setInterval(refreshStatus, 30000);
     });
 </script>
 @endpush

@@ -73,6 +73,7 @@
                                     <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                                     <option value="manager" {{ old('role') == 'manager' ? 'selected' : '' }}>Manager</option>
                                     <option value="staff" {{ old('role') == 'staff' ? 'selected' : '' }}>Staff</option>
+                                    <option value="delivery" {{ old('role') == 'delivery' ? 'selected' : '' }}>Delivery Rider</option>
                                 </select>
                                 @error('role')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -90,23 +91,26 @@
                                             $location = str_replace('☕ Brew & Bean Co. - ', '', $branch->name);
                                         @endphp
                                         <option value="{{ $branch->id }}" {{ old('branch_id') == $branch->id ? 'selected' : '' }}>
-                                            {{ $location }} 
-                                            @if($location != $branch->name)
-                                                <span class="text-muted">({{ $branch->name }})</span>
-                                            @endif
+                                            {{ $location }}
                                         </option>
                                     @endforeach
                                 </select>
                                 @error('branch_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                                <small class="text-muted">Select the branch where this staff will be assigned.</small>
+                                <small class="text-muted">Select the branch where this person will be assigned.</small>
                             </div>
 
                             <div class="col-md-12">
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle me-2"></i>
-                                    <strong>Note:</strong> Staff members can only access their assigned branch.
+                                    <strong>Roles:</strong>
+                                    <ul class="mb-0 mt-1">
+                                        <li><strong>Admin:</strong> Full access to everything</li>
+                                        <li><strong>Manager:</strong> Can manage branches, staff, products, inventory</li>
+                                        <li><strong>Staff:</strong> Can use POS, queue, inventory view</li>
+                                        <li><strong>Delivery Rider:</strong> Can only see assigned deliveries</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>

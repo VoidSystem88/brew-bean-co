@@ -211,3 +211,46 @@ Route::get('/supplier/view/{token}', [SupplierApprovalController::class, 'view']
 
 
 
+
+// PHASE 2 FEATURES
+Route::post('/customer/feedback', [App\Http\Controllers\CustomerFeedbackController::class, 'store'])->name('customer.feedback.store');
+Route::get('/admin/promo-codes', [App\Http\Controllers\PromoCodeController::class, 'index'])->name('promo-codes.index');
+Route::post('/admin/promo-codes', [App\Http\Controllers\PromoCodeController::class, 'store'])->name('promo-codes.store');
+Route::post('/promo/validate', [App\Http\Controllers\PromoCodeController::class, 'validateCode'])->name('promo.validate');
+Route::delete('/admin/promo-codes/{id}', [App\Http\Controllers\PromoCodeController::class, 'destroy'])->name('promo-codes.destroy');
+Route::get('/customer/referral/generate', [App\Http\Controllers\ReferralController::class, 'generateCode'])->name('referral.generate');
+Route::post('/customer/referral/use', [App\Http\Controllers\ReferralController::class, 'useReferral'])->name('referral.use');
+
+// Delivery Tracking
+Route::post('/delivery/assign', [App\Http\Controllers\DeliveryController::class, 'assignDeliveryPerson'])->name('delivery.assign')->middleware('role:staff');
+Route::post('/delivery/{id}/picked_up', [App\Http\Controllers\DeliveryController::class, 'markPickedUp'])->name('delivery.picked_up')->middleware('role:staff');
+Route::post('/delivery/{id}/in_transit', [App\Http\Controllers\DeliveryController::class, 'markInTransit'])->name('delivery.in_transit')->middleware('role:staff');
+Route::post('/delivery/{id}/completed', [App\Http\Controllers\DeliveryController::class, 'confirmDelivery'])->name('delivery.completed')->middleware('role:staff');
+Route::post('/delivery/{id}/fail', [App\Http\Controllers\DeliveryController::class, 'markDeliveryFailed'])->name('delivery.fail')->middleware('role:staff');
+Route::get('/delivery/tracking/{id}', [App\Http\Controllers\DeliveryController::class, 'getTracking'])->name('delivery.tracking')->middleware('role:staff');
+
+
+// Delivery Person Routes
+Route::get('/delivery/dashboard', [App\Http\Controllers\DeliveryPersonController::class, 'dashboard'])
+    ->name('delivery.dashboard')
+    ->middleware('role:delivery');
+    
+Route::post('/delivery-person/update-status/{saleId}', [App\Http\Controllers\DeliveryPersonController::class, 'updateStatus'])
+    ->name('delivery.update-status')
+    ->middleware('role:delivery');
+    
+Route::get('/delivery-person/tracking/{saleId}', [App\Http\Controllers\DeliveryPersonController::class, 'getTracking'])
+    ->name('delivery.tracking')
+    ->middleware('role:delivery');
+    
+Route::get('/delivery-person/order/{saleId}', [App\Http\Controllers\DeliveryPersonController::class, 'getOrderDetails'])
+    ->name('delivery.order-details')
+    ->middleware('role:delivery');
+
+Route::get('/delivery/riders', [App\Http\Controllers\DeliveryController::class, 'getRiders'])->name('delivery.riders')->middleware('auth');
+// Delivery Riders API
+Route::get('/delivery/riders', [App\Http\Controllers\DeliveryController::class, 'getRiders'])->name('delivery.riders')->middleware('auth');
+// Delivery Person Status Update
+Route::post('/delivery-person/update-status/{saleId}', [App\Http\Controllers\DeliveryPersonController::class, 'updateStatus'])
+    ->name('delivery.update-status')
+    ->middleware('auth');
