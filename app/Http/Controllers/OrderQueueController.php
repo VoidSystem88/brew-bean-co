@@ -23,12 +23,22 @@ class OrderQueueController extends Controller
         $user = Auth::user();
         $branchId = $user->branch_id ?? null;
         
-        // Get all sales with orders for this branch - EXCLUDE completed and cancelled
+        // Get delivery riders for assignment
+        $deliveryRiders = User::where('role', 'delivery')
+            ->where('is_active', true)
+            ->get();
+        
+        // Get all sales with orders for this branch - EXCLUDE completed, cancelled, AND assigned delivery
         $sales = Sale::with(['customer', 'orders.product', 'branch'])
             ->whereHas('orders', function($query) {
                 $query->whereNotIn('status', ['completed', 'cancelled']);
             })
             ->where('order_status', '!=', 'completed')
+            // EXCLUDE orders that are already assigned to a delivery person
+            ->where(function($query) {
+                $query->whereNull('delivery_person_id')
+                      ->orWhere('delivery_person_id', 0);
+            })
             ->orderBy('created_at', 'asc');
             
         if ($branchId) {
@@ -36,11 +46,6 @@ class OrderQueueController extends Controller
         }
         
         $sales = $sales->get();
-        
-        // Get delivery riders for assignment
-        $deliveryRiders = User::where('role', 'delivery')
-            ->where('is_active', true)
-            ->get();
         
         // Separate in-store and online orders
         $inStore = [
@@ -86,6 +91,11 @@ class OrderQueueController extends Controller
                     continue;
                 }
                 
+                // SKIP if delivery is already assigned
+                if ($sale->delivery_person_id && $sale->delivery_person_id > 0) {
+                    continue;
+                }
+                
                 $category = 'pending';
                 if ($status === 'preparing') $category = 'preparing';
                 if ($status === 'ready') {
@@ -108,7 +118,8 @@ class OrderQueueController extends Controller
                     'delivery_status' => $sale->delivery_status ?? 'pending',
                     'delivery_person_id' => $sale->delivery_person_id,
                     'delivery_address' => $sale->delivery_address,
-                    'delivery_riders' => $deliveryRiders
+                    'delivery_riders' => $deliveryRiders,
+                    'is_assigned' => !empty($sale->delivery_person_id)
                 ];
                 
                 if ($isOnline) {
@@ -267,6 +278,11 @@ class OrderQueueController extends Controller
         $newOrders = Sale::with(['customer', 'orders'])
             ->whereHas('orders', function($query) {
                 $query->where('status', 'pending');
+            })
+            // EXCLUDE orders already assigned to delivery
+            ->where(function($query) {
+                $query->whereNull('delivery_person_id')
+                      ->orWhere('delivery_person_id', 0);
             })
             ->orderBy('created_at', 'desc');
             

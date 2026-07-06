@@ -54,11 +54,16 @@ class DeliveryController extends Controller
             ->limit(20)
             ->get();
         
-        // Get delivery orders
+        // Get delivery orders - EXCLUDE those already assigned to a rider
         $deliveryOrders = Sale::with(['customer', 'branch', 'deliveryPerson'])
             ->where('delivery_address', '!=', null)
             ->where('delivery_status', '!=', 'completed')
             ->where('delivery_status', '!=', 'cancelled')
+            // Only show orders that are NOT yet assigned
+            ->where(function($query) {
+                $query->whereNull('delivery_person_id')
+                      ->orWhere('delivery_person_id', 0);
+            })
             ->orderBy('created_at', 'asc')
             ->get();
         
@@ -114,6 +119,19 @@ class DeliveryController extends Controller
             $sale->delivery_assigned_at = now();
             $sale->delivery_status = 'assigned';
             $sale->save();
+
+            // Update order status to ready
+            foreach ($sale->orders as $order) {
+                if ($order->status === 'pending' || $order->status === 'preparing') {
+                    $order->status = 'ready';
+                    $order->save();
+                }
+            }
+            
+            if ($sale->order_status === 'pending' || $sale->order_status === 'preparing') {
+                $sale->order_status = 'ready';
+                $sale->save();
+            }
 
             // Create tracking record
             DeliveryTracking::create([
@@ -333,7 +351,7 @@ class DeliveryController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '✅ Delivery received successfully! Stock added to branch inventory.',
+                'message' => 'âœ… Delivery received successfully! Stock added to branch inventory.',
                 'transfer_id' => $transfer->id
             ]);
 
@@ -411,7 +429,7 @@ class DeliveryController extends Controller
 
             DB::commit();
 
-            $message = '✅ ' . $receivedCount . ' delivery(s) received successfully!';
+            $message = 'âœ… ' . $receivedCount . ' delivery(s) received successfully!';
             if (!empty($errors)) {
                 $message .= ' Errors: ' . implode(', ', $errors);
             }

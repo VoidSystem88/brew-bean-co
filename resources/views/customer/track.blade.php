@@ -252,7 +252,7 @@
         
         <div class="detail-row">
             <span class="label">Branch</span>
-            <span class="value">{{ str_replace('☕ Brew & Bean Co. - ', '', $order->branch->name ?? 'N/A') }}</span>
+            <span class="value">{{ str_replace('â˜• Brew & Bean Co. - ', '', $order->branch->name ?? 'N/A') }}</span>
         </div>
         <div class="detail-row">
             <span class="label">Delivery Address</span>
@@ -261,12 +261,12 @@
         @if($order->discount_rate > 0)
             <div class="detail-row">
                 <span class="label">Discount</span>
-                <span class="value" style="color:#28a745;">{{ $order->discount_rate }}% (₱{{ number_format($order->discount_amount, 2) }})</span>
+                <span class="value" style="color:#28a745;">{{ $order->discount_rate }}% (â‚±{{ number_format($order->discount_amount, 2) }})</span>
             </div>
         @endif
         <div class="detail-row" style="font-weight:700;font-size:16px;color:#6F4E37;border-bottom:2px solid #6F4E37;">
             <span class="label">Total</span>
-            <span class="value">₱{{ number_format($order->total_amount, 2) }}</span>
+            <span class="value">â‚±{{ number_format($order->total_amount, 2) }}</span>
         </div>
         
         <div class="order-items-list">
@@ -275,8 +275,8 @@
             </div>
             @foreach($order->orders as $item)
                 <div class="item" style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid #f5f5f5;">
-                    <span>{{ $item->product->name ?? 'Unknown' }} × {{ $item->quantity }}</span>
-                    <span>₱{{ number_format(($item->product->price ?? 0) * $item->quantity, 2) }}</span>
+                    <span>{{ $item->product->name ?? 'Unknown' }} Ã— {{ $item->quantity }}</span>
+                    <span>â‚±{{ number_format(($item->product->price ?? 0) * $item->quantity, 2) }}</span>
                 </div>
             @endforeach
         </div>

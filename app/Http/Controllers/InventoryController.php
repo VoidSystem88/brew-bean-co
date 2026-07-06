@@ -7,6 +7,7 @@ use App\Models\Item;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\WarehouseStock;
+use App\Models\Transfer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -37,10 +38,9 @@ class InventoryController extends Controller
             $branchId = $user->branch_id;
             $branch = Branch::findOrFail($branchId);
             
-            // Staff only sees branch stock, NOT warehouse stock
             $items = Item::with(['branches' => function($query) use ($branchId) {
                 $query->where('branch_id', $branchId);
-            }])->get(); // Removed 'warehouseStock' from eager loading
+            }])->get();
             
             $lowStockItems = $this->getLowStockItems($branchId);
             $suppliers = Supplier::all();
@@ -60,7 +60,6 @@ class InventoryController extends Controller
         $branchId = $request->branch_id ?? $branches->first()->id;
         $branch = Branch::findOrFail($branchId);
         
-        // Admin/Manager sees both branch stock and warehouse stock
         $items = Item::with(['branches' => function($query) use ($branchId) {
             $query->where('branch_id', $branchId);
         }, 'warehouseStock'])->get();

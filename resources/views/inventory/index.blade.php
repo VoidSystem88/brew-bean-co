@@ -533,6 +533,7 @@
         }
 
         const btn = document.querySelector('#transferModal .btn-primary');
+        const originalHtml = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Processing...';
 
@@ -540,7 +541,8 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
             },
             body: JSON.stringify({
                 item_id: transferItemId,
@@ -548,10 +550,17 @@
                 quantity: parseFloat(quantity)
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error('Server error (Status: ' + response.status + ')');
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Transfer';
+            btn.innerHTML = originalHtml;
             
             if (data.success) {
                 alert('✅ ' + data.message);
@@ -562,8 +571,9 @@
         })
         .catch(error => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Transfer';
-            alert('Error: ' + error);
+            btn.innerHTML = originalHtml;
+            console.error('Error:', error);
+            alert('❌ Error: ' + error.message);
         });
     }
 </script>

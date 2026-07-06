@@ -26,6 +26,11 @@ use App\Http\Controllers\DatabaseController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\PromoCodeController;
+use App\Http\Controllers\ReferralController;
+use App\Http\Controllers\CustomerFeedbackController;
+use App\Http\Controllers\QrSettingsController;
+use App\Http\Controllers\DeliveryPersonController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -64,6 +69,10 @@ Route::get('/customer/profile', [CustomerAuthController::class, 'profile'])->nam
 Route::post('/customer/profile/update', [CustomerAuthController::class, 'updateProfile'])->name('customer.update-profile');
 Route::post('/customer/profile/update-address', [CustomerAuthController::class, 'updateAddress'])->name('customer.update-address');
 
+// Customer Order Count & Cancel Routes
+Route::get('/customer/orders/count', [CustomerAuthController::class, 'orderCount'])->name('customer.orders.count');
+Route::post('/customer/orders/{id}/cancel', [CustomerAuthController::class, 'cancelOrder'])->name('customer.orders.cancel');
+
 // Barista Queue Routes
 Route::middleware(['auth'])->prefix('barista')->name('barista.')->group(function () {
     Route::get('/queue', [OrderQueueController::class, 'index'])->name('queue');
@@ -97,6 +106,11 @@ Route::middleware(['auth'])->group(function () {
 
     // Staff Dashboard
     Route::get('/staff/dashboard', [StaffDashboardController::class, 'index'])->name('staff.dashboard')->middleware('role:staff');
+
+    // Staff Notification Routes
+    Route::get('/staff/notifications', [App\Http\Controllers\StaffNotificationController::class, 'getNotifications'])->name('staff.notifications');
+    Route::post('/staff/notifications/read/{id}', [App\Http\Controllers\StaffNotificationController::class, 'markAsRead'])->name('staff.notifications.read');
+    Route::post('/staff/notifications/read-all', [App\Http\Controllers\StaffNotificationController::class, 'markAllRead'])->name('staff.notifications.read-all');
 
     // Mobile Pulse Check
     Route::get('/mobile-pulse', [MobileDashboardController::class, 'index'])->name('mobile.pulse');
@@ -198,59 +212,45 @@ Route::get('/supplier/approve/{token}', [SupplierApprovalController::class, 'app
 Route::post('/supplier/approve/{token}', [SupplierApprovalController::class, 'approve']);
 Route::get('/supplier/reject/{token}', [SupplierApprovalController::class, 'reject'])->name('supplier.reject');
 Route::post('/supplier/reject/{token}', [SupplierApprovalController::class, 'reject']);
+
+// Customer Discount Routes
 Route::get('/customer/available-discounts', [CustomerAuthController::class, 'getAvailableDiscountsAjax'])->name('customer.available-discounts');
 Route::post('/customer/redeem-discount', [CustomerAuthController::class, 'redeemDiscount'])->name('customer.redeem-discount');
 Route::get('/customer/use-voucher/{id}', [CustomerAuthController::class, 'useVoucher'])->name('customer.use-voucher');
 Route::post('/customer/remove-voucher', [CustomerAuthController::class, 'removeVoucher'])->name('customer.remove-voucher');
-Route::get('/admin/qr-settings', [App\Http\Controllers\QrSettingsController::class, 'index'])->name('qr.settings')->middleware('role:admin');
-Route::post('/admin/qr/upload-logo', [App\Http\Controllers\QrSettingsController::class, 'uploadLogo'])->name('qr.upload-logo')->middleware('role:admin');
-Route::delete('/admin/qr/remove-logo', [App\Http\Controllers\QrSettingsController::class, 'removeLogo'])->name('qr.remove-logo')->middleware('role:admin');
-Route::get('/admin/qr/preview', [App\Http\Controllers\QrSettingsController::class, 'preview'])->name('qr.preview')->middleware('role:admin');
-Route::get('/admin/qr/download', [App\Http\Controllers\QrSettingsController::class, 'download'])->name('qr.download')->middleware('role:admin');
+
+// QR Settings
+Route::get('/admin/qr-settings', [QrSettingsController::class, 'index'])->name('qr.settings')->middleware('role:admin');
+Route::post('/admin/qr/upload-logo', [QrSettingsController::class, 'uploadLogo'])->name('qr.upload-logo')->middleware('role:admin');
+Route::delete('/admin/qr/remove-logo', [QrSettingsController::class, 'removeLogo'])->name('qr.remove-logo')->middleware('role:admin');
+Route::get('/admin/qr/preview', [QrSettingsController::class, 'preview'])->name('qr.preview')->middleware('role:admin');
+Route::get('/admin/qr/download', [QrSettingsController::class, 'download'])->name('qr.download')->middleware('role:admin');
+
+// Supplier View
 Route::get('/supplier/view/{token}', [SupplierApprovalController::class, 'view'])->name('supplier.view');
 
-
-
-
 // PHASE 2 FEATURES
-Route::post('/customer/feedback', [App\Http\Controllers\CustomerFeedbackController::class, 'store'])->name('customer.feedback.store');
-Route::get('/admin/promo-codes', [App\Http\Controllers\PromoCodeController::class, 'index'])->name('promo-codes.index');
-Route::post('/admin/promo-codes', [App\Http\Controllers\PromoCodeController::class, 'store'])->name('promo-codes.store');
-Route::post('/promo/validate', [App\Http\Controllers\PromoCodeController::class, 'validateCode'])->name('promo.validate');
-Route::delete('/admin/promo-codes/{id}', [App\Http\Controllers\PromoCodeController::class, 'destroy'])->name('promo-codes.destroy');
-Route::get('/customer/referral/generate', [App\Http\Controllers\ReferralController::class, 'generateCode'])->name('referral.generate');
-Route::post('/customer/referral/use', [App\Http\Controllers\ReferralController::class, 'useReferral'])->name('referral.use');
+Route::post('/customer/feedback', [CustomerFeedbackController::class, 'store'])->name('customer.feedback.store');
+Route::get('/admin/promo-codes', [PromoCodeController::class, 'index'])->name('promo-codes.index');
+Route::post('/admin/promo-codes', [PromoCodeController::class, 'store'])->name('promo-codes.store');
+Route::post('/promo/validate', [PromoCodeController::class, 'validateCode'])->name('promo.validate');
+Route::delete('/admin/promo-codes/{id}', [PromoCodeController::class, 'destroy'])->name('promo-codes.destroy');
+Route::get('/customer/referral/generate', [ReferralController::class, 'generateCode'])->name('referral.generate');
+Route::post('/customer/referral/use', [ReferralController::class, 'useReferral'])->name('referral.use');
 
 // Delivery Tracking
-Route::post('/delivery/assign', [App\Http\Controllers\DeliveryController::class, 'assignDeliveryPerson'])->name('delivery.assign')->middleware('role:staff');
-Route::post('/delivery/{id}/picked_up', [App\Http\Controllers\DeliveryController::class, 'markPickedUp'])->name('delivery.picked_up')->middleware('role:staff');
-Route::post('/delivery/{id}/in_transit', [App\Http\Controllers\DeliveryController::class, 'markInTransit'])->name('delivery.in_transit')->middleware('role:staff');
-Route::post('/delivery/{id}/completed', [App\Http\Controllers\DeliveryController::class, 'confirmDelivery'])->name('delivery.completed')->middleware('role:staff');
-Route::post('/delivery/{id}/fail', [App\Http\Controllers\DeliveryController::class, 'markDeliveryFailed'])->name('delivery.fail')->middleware('role:staff');
-Route::get('/delivery/tracking/{id}', [App\Http\Controllers\DeliveryController::class, 'getTracking'])->name('delivery.tracking')->middleware('role:staff');
-
+Route::post('/delivery/assign', [DeliveryController::class, 'assignDeliveryPerson'])->name('delivery.assign')->middleware('role:staff');
+Route::post('/delivery/{id}/picked_up', [DeliveryController::class, 'markPickedUp'])->name('delivery.picked_up')->middleware('role:staff');
+Route::post('/delivery/{id}/in_transit', [DeliveryController::class, 'markInTransit'])->name('delivery.in_transit')->middleware('role:staff');
+Route::post('/delivery/{id}/completed', [DeliveryController::class, 'confirmDelivery'])->name('delivery.completed')->middleware('role:staff');
+Route::post('/delivery/{id}/fail', [DeliveryController::class, 'markDeliveryFailed'])->name('delivery.fail')->middleware('role:staff');
+Route::get('/delivery/tracking/{id}', [DeliveryController::class, 'getTracking'])->name('delivery.tracking')->middleware('role:staff');
 
 // Delivery Person Routes
-Route::get('/delivery/dashboard', [App\Http\Controllers\DeliveryPersonController::class, 'dashboard'])
-    ->name('delivery.dashboard')
-    ->middleware('role:delivery');
-    
-Route::post('/delivery-person/update-status/{saleId}', [App\Http\Controllers\DeliveryPersonController::class, 'updateStatus'])
-    ->name('delivery.update-status')
-    ->middleware('role:delivery');
-    
-Route::get('/delivery-person/tracking/{saleId}', [App\Http\Controllers\DeliveryPersonController::class, 'getTracking'])
-    ->name('delivery.tracking')
-    ->middleware('role:delivery');
-    
-Route::get('/delivery-person/order/{saleId}', [App\Http\Controllers\DeliveryPersonController::class, 'getOrderDetails'])
-    ->name('delivery.order-details')
-    ->middleware('role:delivery');
+Route::get('/delivery/dashboard', [DeliveryPersonController::class, 'dashboard'])->name('delivery.dashboard')->middleware('role:delivery');
+Route::post('/delivery-person/update-status/{saleId}', [DeliveryPersonController::class, 'updateStatus'])->name('delivery.update-status')->middleware('role:delivery');
+Route::get('/delivery-person/tracking/{saleId}', [DeliveryPersonController::class, 'getTracking'])->name('delivery.tracking')->middleware('role:delivery');
+Route::get('/delivery-person/order/{saleId}', [DeliveryPersonController::class, 'getOrderDetails'])->name('delivery.order-details')->middleware('role:delivery');
 
-Route::get('/delivery/riders', [App\Http\Controllers\DeliveryController::class, 'getRiders'])->name('delivery.riders')->middleware('auth');
-// Delivery Riders API
-Route::get('/delivery/riders', [App\Http\Controllers\DeliveryController::class, 'getRiders'])->name('delivery.riders')->middleware('auth');
-// Delivery Person Status Update
-Route::post('/delivery-person/update-status/{saleId}', [App\Http\Controllers\DeliveryPersonController::class, 'updateStatus'])
-    ->name('delivery.update-status')
-    ->middleware('auth');
+// Delivery Riders
+Route::get('/delivery/riders', [DeliveryController::class, 'getRiders'])->name('delivery.riders')->middleware('auth');

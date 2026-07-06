@@ -35,6 +35,48 @@
         padding: 5px 12px;
         border: 1px solid #ddd;
         border-radius: 6px;
+        font
+full fix mo yung discount method gawin mong dropdown tapus lalabas ang mga avail voucher kung may mga malalaking voucher like need 200 min spend gawin mong disable kung below ang pag bili nila
+Narito ang FULL FIX para sa customer dashboard na may dropdown voucher selection at disabled vouchers kung hindi meet ang minimum spend:
+
+blade
+@extends('layouts.customer')
+
+@section('page-title', 'Menu')
+
+@section('content')
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f8f6f4; }
+    
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 14px 16px;
+        border: 1px solid #eee;
+        text-align: center;
+        transition: 0.2s;
+    }
+    .stat-card:hover { border-color: #6F4E37; }
+    .stat-card .stat-number { font-size: 22px; font-weight: 700; color: #6F4E37; }
+    .stat-card .stat-label { color: #999; font-size: 12px; margin-top: 2px; }
+    
+    .branch-selector {
+        background: white;
+        border-radius: 10px;
+        padding: 10px 16px;
+        border: 1px solid #eee;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .branch-selector label { font-size: 13px; font-weight: 600; color: #333; margin: 0; }
+    .branch-selector select {
+        padding: 5px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
         font-size: 13px;
         background: white;
         flex: 1;
@@ -166,30 +208,158 @@
     .qty-btn:hover { background: #6F4E37; color: white; border-color: #6F4E37; }
     .cart-total { font-size: 18px; font-weight: 600; color: #6F4E37; }
     
-    .order-modal {
-        display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.6); z-index: 9999;
-        align-items: center; justify-content: center; padding: 20px;
+    .filter-group {
+        display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;
     }
-    .order-modal.show { display: flex; }
-    .order-modal .modal-content {
-        background: white; border-radius: 16px;
-        max-width: 600px; width: 100%; max-height: 95vh;
-        overflow-y: auto; padding: 25px;
-        position: relative; animation: modalIn 0.3s ease;
+    .filter-btn {
+        padding: 3px 14px; border-radius: 20px;
+        border: 1px solid #ddd; background: white;
+        font-size: 12px; cursor: pointer; transition: 0.2s;
     }
-    @keyframes modalIn {
-        from { transform: scale(0.9); opacity: 0; }
-        to { transform: scale(1); opacity: 1; }
+    .filter-btn:hover { border-color: #6F4E37; }
+    .filter-btn.active { background: #6F4E37; color: white; border-color: #6F4E37; }
+    
+    .location-banner {
+        background: white; border-radius: 10px; padding: 10px 16px;
+        border: 1px solid #eee; margin-bottom: 15px;
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap;
     }
-    .order-modal .modal-close {
-        position: absolute; top: 12px; right: 16px;
-        background: none; border: none; font-size: 22px; color: #999; cursor: pointer;
+    .location-banner .location-text { font-size: 13px; color: #666; }
+    .location-banner .location-text i { color: #6F4E37; }
+    .location-banner .btn-locate {
+        background: #6F4E37; color: white; border: none;
+        padding: 4px 14px; border-radius: 20px; font-size: 12px; cursor: pointer;
     }
-    .order-modal .modal-close:hover { color: #333; }
-    .order-modal .order-item {
-        display: flex; justify-content: space-between;
-        padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px;
+    .location-banner .btn-locate:hover { background: #5a3d2b; }
+    
+    /* Checkout Modal */
+    .checkout-modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 99999;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(6px);
+    }
+    .checkout-modal.show { display: flex; }
+    .checkout-modal .modal-content {
+        background: white;
+        border-radius: 20px;
+        max-width: 600px;
+        width: 100%;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        animation: slideUp 0.4s ease;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+        overflow: hidden;
+    }
+    .checkout-modal .modal-header {
+        padding: 20px 24px 16px;
+        border-bottom: 2px solid #6F4E37;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #faf8f6;
+        flex-shrink: 0;
+    }
+    .checkout-modal .modal-header h4 {
+        font-size: 20px; font-weight: 700; color: #333; margin: 0;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .checkout-modal .modal-header h4 i { color: #6F4E37; }
+    .checkout-modal .modal-close {
+        background: none; border: none; font-size: 24px; color: #999; cursor: pointer;
+        padding: 4px 8px; transition: 0.2s;
+    }
+    .checkout-modal .modal-close:hover { color: #333; }
+    .checkout-modal .modal-body {
+        padding: 20px 24px;
+        overflow-y: auto;
+        flex: 1;
+    }
+    .checkout-modal .modal-footer {
+        padding: 16px 24px 20px;
+        border-top: 1px solid #eee;
+        background: #faf8f6;
+        flex-shrink: 0;
+    }
+    
+    .checkout-item {
+        display: flex; align-items: center; gap: 14px;
+        padding: 10px 0; border-bottom: 1px solid #f5f5f5;
+    }
+    .checkout-item .item-img {
+        width: 50px; height: 50px; border-radius: 10px;
+        overflow: hidden; background: #f5f0eb; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid #eee;
+    }
+    .checkout-item .item-img img { width: 100%; height: 100%; object-fit: cover; }
+    .checkout-item .item-img .no-img { font-size: 22px; color: #ccc; }
+    .checkout-item .item-info { flex: 1; min-width: 0; }
+    .checkout-item .item-info .name { font-weight: 600; font-size: 14px; color: #333; }
+    .checkout-item .item-info .price { font-size: 13px; color: #6F4E37; font-weight: 500; }
+    .checkout-item .item-actions {
+        display: flex; align-items: center; gap: 8px;
+    }
+    .checkout-item .item-actions .qty-btn {
+        width: 28px; height: 28px; border-radius: 50%;
+        border: 1px solid #ddd; background: white;
+        font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .checkout-item .item-actions .qty-btn:hover {
+        background: #6F4E37; color: white; border-color: #6F4E37;
+    }
+    .checkout-item .item-actions .qty-num {
+        min-width: 24px; text-align: center; font-weight: 600; font-size: 14px;
+    }
+    .checkout-item .item-subtotal {
+        font-weight: 700; color: #6F4E37; font-size: 14px;
+        min-width: 70px; text-align: right;
+    }
+    .checkout-item .item-remove {
+        background: none; border: none; color: #dc3545;
+        cursor: pointer; font-size: 16px; padding: 4px 8px;
+        opacity: 0.4; transition: 0.2s;
+    }
+    .checkout-item .item-remove:hover { opacity: 1; }
+    
+    .modal-pricing {
+        background: #f8f6f4;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-top: 12px;
+    }
+    .modal-pricing .price-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        font-size: 13px;
+        color: #666;
+    }
+    .modal-pricing .price-row.total {
+        font-weight: 700;
+        font-size: 18px;
+        color: #6F4E37;
+        border-top: 2px solid #e8e8e8;
+        padding-top: 8px;
+        margin-top: 4px;
+    }
+    .modal-pricing .price-row.discount { color: #28a745; }
+    .modal-pricing .points-earn {
+        font-size: 12px;
+        color: #999;
+        border-top: 1px solid #e8e8e8;
+        padding-top: 4px;
+        margin-top: 2px;
+        display: flex;
+        justify-content: space-between;
     }
     
     .address-warning {
@@ -197,7 +367,7 @@
         border: 1px solid #ffc107;
         border-radius: 8px;
         padding: 10px 14px;
-        margin: 8px 0;
+        margin: 10px 0;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -217,262 +387,11 @@
     }
     .address-warning .btn-setup:hover { background: #5a3d2b; color: white; }
     
-    .pricing-summary {
-        background: #f8f6f4;
-        border-radius: 8px;
-        padding: 10px 14px;
-        margin: 8px 0;
-    }
-    .pricing-summary .price-row {
-        display: flex; justify-content: space-between;
-        padding: 3px 0;
-        font-size: 13px;
-    }
-    .pricing-summary .price-row.total {
-        font-weight: 700; font-size: 16px; color: #6F4E37;
-        border-top: 2px solid #e8e8e8; padding-top: 6px; margin-top: 4px;
-    }
-    .pricing-summary .price-row.discount { color: #28a745; }
-    .pricing-summary .price-row.original { color: #999; text-decoration: line-through; }
-    .pricing-summary .price-row.delivery-fee { color: #6F4E37; font-weight: 600; }
-    
-    .branch-info-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 6px 10px;
-        background: #f8f6f4;
-        border-radius: 8px;
-        margin: 6px 0;
-        font-size: 13px;
-    }
-    .branch-info-row i { color: #6F4E37; width: 18px; }
-    .branch-info-row .badge-nearest {
-        background: #28a745;
-        color: white;
-        font-size: 10px;
-        padding: 1px 10px;
-        border-radius: 12px;
-        font-weight: 600;
-        margin-left: 6px;
-    }
-    .branch-info-row .distance-value { font-weight: 600; color: #6F4E37; }
-    
-    .branch-selector-wrapper {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-    .branch-selector-wrapper select { flex: 1; }
-    .btn-detect-branch {
-        background: #6F4E37;
-        color: white;
-        border: none;
-        padding: 6px 14px;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 600;
-        white-space: nowrap;
-        cursor: pointer;
-        transition: 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-    .btn-detect-branch:hover { background: #5a3d2b; }
-    .btn-detect-branch:disabled { opacity: 0.6; cursor: not-allowed; }
-    
-    .location-banner {
-        background: white; border-radius: 10px;
-        padding: 10px 16px;
-        border: 1px solid #eee;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-    }
-    .location-banner .location-text { font-size: 13px; color: #666; }
-    .location-banner .location-text i { color: #6F4E37; }
-    .location-banner .btn-locate {
-        background: #6F4E37; color: white; border: none;
-        padding: 4px 14px; border-radius: 20px; font-size: 12px; cursor: pointer;
-    }
-    .location-banner .btn-locate:hover { background: #5a3d2b; }
-    
-    .filter-group {
-        display: flex;
-        gap: 6px; flex-wrap: wrap; margin-bottom: 10px;
-    }
-    .filter-btn {
-        padding: 3px 14px; border-radius: 20px;
-        border: 1px solid #ddd; background: white;
-        font-size: 12px; cursor: pointer; transition: 0.2s;
-    }
-    .filter-btn:hover { border-color: #6F4E37; }
-    .filter-btn.active { background: #6F4E37; color: white; border-color: #6F4E37; }
-    
-    .feedback-modal {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.6);
-        z-index: 99999;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        backdrop-filter: blur(4px);
-    }
-    .feedback-modal.show {
-        display: flex;
-        animation: fadeIn 0.3s ease;
-    }
-    .feedback-modal .feedback-modal-content {
-        background: white;
-        border-radius: 20px;
-        max-width: 420px;
-        width: 100%;
-        padding: 35px 30px;
-        text-align: center;
-        animation: slideUp 0.4s ease;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        position: relative;
-        overflow: hidden;
-    }
-    .feedback-modal .feedback-modal-content::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
-    }
-    .feedback-modal .feedback-modal-content.success::before {
-        background: linear-gradient(90deg, #28a745, #20c997);
-    }
-    .feedback-modal .feedback-modal-content.error::before {
-        background: linear-gradient(90deg, #dc3545, #ff6b6b);
-    }
-    .feedback-modal .feedback-modal-content.warning::before {
-        background: linear-gradient(90deg, #ffc107, #fd7e14);
-    }
-    .feedback-modal .feedback-icon {
-        font-size: 64px; margin-bottom: 12px; display: inline-block;
-        animation: popIn 0.5s ease;
-    }
-    .feedback-modal .feedback-icon.success { color: #28a745; }
-    .feedback-modal .feedback-icon.error { color: #dc3545; }
-    .feedback-modal .feedback-icon.warning { color: #ffc107; }
-    .feedback-modal h4 {
-        font-size: 22px; font-weight: 700; color: #333; margin-bottom: 6px;
-    }
-    .feedback-modal p {
-        font-size: 14px; color: #666; margin-bottom: 12px; line-height: 1.5;
-    }
-    .feedback-modal .feedback-details {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 12px 16px;
-        margin: 10px 0 16px;
-        text-align: left;
-        font-size: 13px;
-        max-height: 150px;
-        overflow-y: auto;
-    }
-    .feedback-modal .feedback-details .detail-row {
-        display: flex; justify-content: space-between;
-        padding: 4px 0; border-bottom: 1px solid #eee;
-    }
-    .feedback-modal .feedback-details .detail-row:last-child { border-bottom: none; }
-    .feedback-modal .feedback-details .detail-row .label { color: #999; font-weight: 500; }
-    .feedback-modal .feedback-details .detail-row .value { font-weight: 600; color: #333; }
-    .feedback-modal .feedback-details .detail-row .value.text-success { color: #28a745; }
-    .feedback-modal .feedback-btn {
-        background: #6F4E37; color: white; border: none;
-        padding: 10px 40px; border-radius: 30px;
-        font-weight: 600; font-size: 14px;
-        cursor: pointer; transition: all 0.2s;
-        margin-top: 4px;
-    }
-    .feedback-modal .feedback-btn:hover { background: #5a3d2b; transform: scale(1.02); }
-    .feedback-modal .feedback-btn.btn-success { background: #28a745; }
-    .feedback-modal .feedback-btn.btn-danger { background: #dc3545; }
-    .feedback-modal .feedback-btn.btn-warning { background: #ffc107; color: #333; }
-    
-    .confirmation-modal {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.7);
-        z-index: 99998;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        backdrop-filter: blur(6px);
-    }
-    .confirmation-modal.show {
-        display: flex;
-        animation: fadeIn 0.3s ease;
-    }
-    .confirmation-modal .confirmation-content {
-        background: white;
-        border-radius: 20px;
-        max-width: 500px;
-        width: 100%;
-        padding: 30px 30px 25px;
-        animation: slideUp 0.4s ease;
-        box-shadow: 0 30px 80px rgba(0,0,0,0.4);
-        position: relative;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-    .confirmation-modal .confirmation-content .confirmation-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #6F4E37;
-        margin-bottom: 15px;
-    }
-    .confirmation-modal .confirmation-content .confirmation-header i {
-        font-size: 28px;
-        color: #6F4E37;
-    }
-    .confirmation-modal .confirmation-content .confirmation-header h4 {
-        font-size: 20px;
-        font-weight: 700;
-        color: #333;
-        margin: 0;
-    }
-    .confirmation-modal .confirmation-content .confirmation-body .order-summary-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 4px 0;
-        font-size: 13px;
-        border-bottom: 1px solid #f5f5f5;
-    }
-    .confirmation-modal .confirmation-content .confirmation-body .summary-total {
-        font-weight: 700;
-        font-size: 18px;
-        color: #6F4E37;
-        border-top: 2px solid #6F4E37;
-        padding-top: 8px;
-        margin-top: 6px;
-        display: flex;
-        justify-content: space-between;
-    }
-    .confirmation-modal .confirmation-content .confirmation-body .summary-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 3px 0;
-        font-size: 13px;
-        color: #666;
-    }
-    .confirmation-modal .confirmation-content .confirmation-body .summary-row .label { color: #999; }
-    .confirmation-modal .confirmation-content .confirmation-body .summary-row .value { font-weight: 500; color: #333; }
-    .confirmation-modal .confirmation-content .confirmation-actions {
+    .modal-footer-btns {
         display: flex;
         gap: 10px;
-        margin-top: 15px;
-        border-top: 1px solid #eee;
-        padding-top: 15px;
     }
-    .confirmation-modal .confirmation-content .confirmation-actions .btn {
+    .modal-footer-btns .btn {
         flex: 1;
         padding: 10px;
         border-radius: 10px;
@@ -481,94 +400,243 @@
         border: none;
         cursor: pointer;
         transition: 0.2s;
+        text-align: center;
     }
-    .confirmation-modal .confirmation-content .confirmation-actions .btn-cancel {
+    .modal-footer-btns .btn-cancel {
         background: #f5f5f5;
         color: #666;
     }
-    .confirmation-modal .confirmation-content .confirmation-actions .btn-cancel:hover { background: #eee; }
-    .confirmation-modal .confirmation-content .confirmation-actions .btn-confirm {
+    .modal-footer-btns .btn-cancel:hover { background: #eee; }
+    .modal-footer-btns .btn-confirm {
         background: #6F4E37;
         color: white;
     }
-    .confirmation-modal .confirmation-content .confirmation-actions .btn-confirm:hover {
+    .modal-footer-btns .btn-confirm:hover {
         background: #5a3d2b;
         transform: scale(1.02);
     }
-    .confirmation-modal .confirmation-content .confirmation-actions .btn-confirm:disabled {
+    .modal-footer-btns .btn-confirm:disabled {
         opacity: 0.6;
         cursor: not-allowed;
         transform: none;
     }
-    .confirmation-modal .confirmation-close {
-        position: absolute;
-        top: 12px;
-        right: 16px;
-        background: none;
-        border: none;
-        font-size: 22px;
-        color: #999;
+    
+    /* ===== DELIVERY CHECKBOX ===== */
+    .delivery-toggle {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid #f5f5f5;
+        margin-bottom: 8px;
+    }
+    .delivery-toggle .custom-checkbox {
+        position: relative;
+        width: 48px;
+        height: 26px;
+        flex-shrink: 0;
         cursor: pointer;
     }
-    .confirmation-modal .confirmation-close:hover { color: #333; }
+    .delivery-toggle .custom-checkbox input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .delivery-toggle .custom-checkbox .checkmark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #ddd;
+        border-radius: 26px;
+        transition: 0.3s;
+        border: 2px solid #ccc;
+    }
+    .delivery-toggle .custom-checkbox .checkmark::after {
+        content: "";
+        position: absolute;
+        left: 3px;
+        bottom: 3px;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: 0.3s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .delivery-toggle .custom-checkbox input:checked + .checkmark {
+        background: #6F4E37;
+        border-color: #6F4E37;
+    }
+    .delivery-toggle .custom-checkbox input:checked + .checkmark::after {
+        transform: translateX(22px);
+    }
+    .delivery-toggle .custom-checkbox .check-icon {
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 16px;
+        z-index: 2;
+        pointer-events: none;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .delivery-toggle .custom-checkbox input:checked + .checkmark .check-icon {
+        display: block;
+    }
+    .delivery-toggle .form-check-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #333;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .delivery-toggle .form-check-label i { color: #6F4E37; }
+    .delivery-toggle .delivery-fee-display {
+        font-size: 12px;
+        color: #6F4E37;
+        font-weight: 600;
+        margin-left: auto;
+        background: #f0ebe6;
+        padding: 2px 12px;
+        border-radius: 12px;
+    }
     
-    /* Floating Checkout Button */
-    .floating-checkout {
+    /* ===== VOUCHER DROPDOWN ===== */
+    .voucher-dropdown {
+        margin-top: 8px;
+        padding: 10px 0;
+        border-top: 1px solid #eee;
+    }
+    .voucher-dropdown label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #333;
+        display: block;
+        margin-bottom: 4px;
+    }
+    .voucher-dropdown label i { color: #6F4E37; }
+    .voucher-dropdown select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 13px;
+        background: white;
+        transition: 0.2s;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+    }
+    .voucher-dropdown select:focus {
+        border-color: #6F4E37;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(111, 78, 55, 0.1);
+    }
+    .voucher-dropdown select option:disabled {
+        color: #ccc;
+    }
+    .voucher-dropdown .voucher-info {
+        font-size: 11px;
+        color: #999;
+        margin-top: 4px;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .voucher-dropdown .voucher-info .voucher-badge {
+        padding: 2px 10px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 600;
+    }
+    .voucher-dropdown .voucher-info .voucher-badge.active {
+        background: #d4edda;
+        color: #155724;
+    }
+    .voucher-dropdown .voucher-info .voucher-badge.locked {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    .voucher-dropdown .voucher-info .voucher-badge.available {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .modal-branch-selector select {
+        padding: 6px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 13px;
+        background: white;
+        width: 100%;
+    }
+    .modal-branch-selector select:focus {
+        border-color: #6F4E37;
+        outline: none;
+    }
+    
+    .feedback-modal {
+        display: none;
         position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 999;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 999999;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(6px);
+    }
+    .feedback-modal.show { display: flex; animation: modalFadeIn 0.3s ease; }
+    .feedback-modal .feedback-content {
+        background: white;
+        border-radius: 24px;
+        max-width: 420px;
+        width: 100%;
+        padding: 35px 30px;
+        text-align: center;
+        animation: slideUp 0.4s ease;
+        box-shadow: 0 40px 100px rgba(0,0,0,0.4);
+    }
+    .feedback-modal .feedback-icon { font-size: 64px; margin-bottom: 12px; }
+    .feedback-modal .feedback-icon.success { color: #28a745; }
+    .feedback-modal .feedback-icon.error { color: #dc3545; }
+    .feedback-modal .feedback-icon.warning { color: #ffc107; }
+    .feedback-modal h4 { font-size: 22px; font-weight: 700; color: #333; margin-bottom: 6px; }
+    .feedback-modal p { font-size: 14px; color: #666; margin-bottom: 12px; }
+    .feedback-modal .feedback-btn {
         background: #6F4E37;
         color: white;
         border: none;
-        border-radius: 50px;
-        padding: 12px 24px;
-        font-weight: 700;
+        padding: 10px 40px;
+        border-radius: 30px;
+        font-weight: 600;
         font-size: 14px;
-        box-shadow: 0 4px 16px rgba(111, 78, 55, 0.35);
         cursor: pointer;
-        transition: all 0.3s ease;
-        display: none;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
+        transition: 0.2s;
+        margin-top: 4px;
     }
-    .floating-checkout:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 24px rgba(111, 78, 55, 0.45);
-        background: #5a3d2b;
-        color: white;
-    }
-    .floating-checkout .badge-count {
-        background: #ffd700;
-        color: #333;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: 700;
-    }
-    .floating-checkout .total-amount {
-        font-weight: 700;
-        color: #ffd700;
-    }
+    .feedback-modal .feedback-btn:hover { background: #5a3d2b; transform: scale(1.02); }
+    .feedback-modal .feedback-btn.btn-success { background: #28a745; }
+    .feedback-modal .feedback-btn.btn-danger { background: #dc3545; }
+    .feedback-modal .feedback-btn.btn-warning { background: #ffc107; color: #333; }
     
-    @keyframes fadeIn {
+    @keyframes modalFadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
     }
     @keyframes slideUp {
         from { transform: translateY(40px); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
-    }
-    @keyframes popIn {
-        0% { transform: scale(0); opacity: 0; }
-        60% { transform: scale(1.3); }
-        80% { transform: scale(0.9); }
-        100% { transform: scale(1); opacity: 1; }
     }
     
     @media (max-width: 576px) {
@@ -581,37 +649,34 @@
         .slideshow-container { height: auto; min-height: 280px; }
         .col-4 { flex: 0 0 50%; max-width: 50%; }
         .product-card .product-image { height: 70px; }
-        .order-modal .modal-content { padding: 20px; margin: 10px; }
-        .stat-card .stat-number { font-size: 18px; }
-        .branch-selector-wrapper { flex-direction: column; }
-        .btn-detect-branch { width: 100%; justify-content: center; }
-        .filter-group { justify-content: center; }
-        .address-warning { flex-direction: column; text-align: center; }
+        .checkout-modal .modal-content { margin: 10px; max-height: 98vh; }
+        .checkout-modal .modal-header { padding: 14px 16px; }
+        .checkout-modal .modal-header h4 { font-size: 17px; }
+        .checkout-modal .modal-body { padding: 12px 14px; }
+        .checkout-modal .modal-footer { padding: 12px 14px 16px; }
+        .checkout-item { padding: 8px 0; gap: 10px; }
+        .checkout-item .item-img { width: 40px; height: 40px; }
+        .checkout-item .item-info .name { font-size: 13px; }
+        .checkout-item .item-subtotal { font-size: 13px; min-width: 60px; }
+        .checkout-item .item-actions .qty-btn { width: 24px; height: 24px; font-size: 12px; }
+        .modal-footer-btns { flex-direction: column; }
+        .modal-pricing .price-row.total { font-size: 16px; }
         .branch-selector { flex-direction: column; align-items: stretch; text-align: center; }
         .branch-selector .branch-stock-info { margin-left: 0; }
-        .feedback-modal .feedback-modal-content { padding: 25px 20px; margin: 10px; }
+        .feedback-modal .feedback-content { padding: 25px 20px; margin: 10px; }
         .feedback-modal .feedback-icon { font-size: 48px; }
         .feedback-modal h4 { font-size: 18px; }
-        .confirmation-modal .confirmation-content { padding: 20px; margin: 10px; }
-        .confirmation-modal .confirmation-content .confirmation-actions { flex-direction: column; }
-        .floating-checkout {
-            bottom: 16px;
-            right: 16px;
-            padding: 10px 18px;
-            font-size: 13px;
-        }
-        .floating-checkout .badge-count {
-            width: 20px;
-            height: 20px;
-            font-size: 10px;
-        }
+        .delivery-toggle .custom-checkbox { width: 40px; height: 22px; }
+        .delivery-toggle .custom-checkbox .checkmark::after { width: 14px; height: 14px; }
+        .delivery-toggle .custom-checkbox input:checked + .checkmark::after { transform: translateX(18px); }
+        .voucher-dropdown select { font-size: 12px; padding: 6px 10px; }
     }
 </style>
 
 <!-- Location Banner -->
 <div class="location-banner">
     <div class="location-text">
-        <i class="fas fa-map-marker-alt me-1"></i>
+        <i class="fas fa-map-marker-alt me-1" style="color:#6F4E37;"></i>
         <span id="locationDisplay">Enable location to find nearest branch</span>
     </div>
     <button class="btn-locate" onclick="getLocation()">
@@ -707,7 +772,7 @@
     </div>
 </div>
 
-<!-- Products & Cart Row -->
+<!-- Products & Cart -->
 <div class="row">
     <div class="col-lg-8">
         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -717,7 +782,7 @@
         <div class="row g-2" id="productGrid">
             @foreach($products as $product)
                 <div class="col-4 col-lg-3 product-item" data-name="{{ strtolower($product->name) }}" data-available="{{ $product->is_available ? 'true' : 'false' }}" data-product-id="{{ $product->id }}">
-                    <div class="product-card {{ $product->is_available ? '' : 'sold-out' }}" onclick="{{ $product->is_available ? 'addToCart('.$product->id.', \''.addslashes($product->name).'\', '.$product->price.')' : '' }}">
+                    <div class="product-card {{ $product->is_available ? '' : 'sold-out' }}">
                         @if(!$product->is_available)
                             <div class="sold-out-overlay"></div>
                             <div class="sold-out-badge">SOLD OUT</div>
@@ -743,12 +808,8 @@
                             @endif
                         </div>
                         @if($product->is_available)
-                            <button class="btn-add" onclick="event.stopPropagation(); addToCart({{ $product->id }}, '{{ addslashes($product->name) }}', {{ $product->price }})">
+                            <button class="btn-add" onclick="addToCart({{ $product->id }}, '{{ addslashes($product->name) }}', {{ $product->price }})">
                                 <i class="fas fa-plus"></i>
-                            </button>
-                        @else
-                            <button class="btn-check-branches" onclick="event.stopPropagation(); checkOtherBranches({{ $product->id }}, '{{ addslashes($product->name) }}')">
-                                <i class="fas fa-store me-1"></i> Check other branches
                             </button>
                         @endif
                         <span class="in-cart-badge" id="badge_{{ $product->id }}">0</span>
@@ -775,21 +836,13 @@
                     <span style="font-size:13px;color:#999;">Total</span>
                     <span class="cart-total" id="cartTotal">₱0.00</span>
                 </div>
-                <button class="btn w-100" onclick="openOrderModal()" style="background:#6F4E37;color:white;border-radius:6px;padding:8px;font-weight:600;font-size:14px;">
+                <button class="btn w-100" onclick="openCheckoutModal()" style="background:#6F4E37;color:white;border-radius:6px;padding:8px;font-weight:600;font-size:14px;">
                     <i class="fas fa-shopping-cart me-2"></i> Checkout
                 </button>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Floating Checkout Button -->
-<a href="#" class="floating-checkout" id="floatingCheckout" onclick="event.preventDefault(); openOrderModal();">
-    <i class="fas fa-shopping-cart"></i>
-    <span id="floatingItemCount" class="badge-count">0</span>
-    <span>Checkout</span>
-    <span class="total-amount" id="floatingTotal">₱0.00</span>
-</a>
 
 <!-- Recent Orders -->
 @if($recentPurchases->count() > 0)
@@ -817,131 +870,125 @@
 </div>
 @endif
 
-<!-- Order Modal -->
-<div class="order-modal" id="orderModal">
+<!-- ===== CHECKOUT MODAL ===== -->
+<div class="checkout-modal" id="checkoutModal">
     <div class="modal-content">
-        <button class="modal-close" onclick="closeOrderModal()"><i class="fas fa-times"></i></button>
-        <h5 class="mb-2"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
-        
-        <div id="addressWarning" style="display:none;">
-            <div class="address-warning">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Please complete your delivery address in your profile first.</span>
-                <a href="{{ route('customer.profile') }}" class="btn-setup">
-                    <i class="fas fa-user-edit"></i> Setup Address
-                </a>
-            </div>
+        <div class="modal-header">
+            <h4><i class="fas fa-receipt"></i> Verify Order</h4>
+            <button class="modal-close" onclick="closeCheckoutModal()">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        
-        <div id="orderItemsList"></div>
-        
-        <div class="pricing-summary" id="pricingSummary">
-            <div class="price-row original" id="priceOriginal">Subtotal: ₱0.00</div>
-            <div class="price-row discount" id="priceDiscount">Discount: ₱0.00 (0%)</div>
-            <div class="price-row delivery-fee" id="priceDeliveryFee" style="display:none;"><i class="fas fa-truck me-1"></i>Delivery Fee: ₱0.00</div>
-            <div class="price-row total" id="priceTotal">Total: ₱0.00</div>
-            <div class="price-row" style="font-size:12px;color:#999;border-top:1px solid #e8e8e8;padding-top:4px;margin-top:2px;">
-                <span>Points to earn:</span>
-                <span id="pointsToEarn">0</span>
-            </div>
-        </div>
-        
-        <div class="modal-mini-map">
-            <div id="modalMap">
-                <div class="map-loading" id="mapLoading">
-                    <i class="fas fa-map"></i>
-                    <span>Loading map...</span>
+        <div class="modal-body">
+            <div id="modalCartItems"></div>
+            
+            <div id="modalAddressWarning" style="display:none;">
+                <div class="address-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Please complete your delivery address in your profile first.</span>
+                    <a href="{{ route('customer.profile') }}" class="btn-setup">
+                        <i class="fas fa-user-edit"></i> Setup Address
+                    </a>
                 </div>
             </div>
-        </div>
-        
-        <div id="branchInfoContainer">
-            <div class="branch-info-row">
-                <i class="fas fa-store"></i>
-                <span id="selectedBranchName">Select a branch</span>
-                <span class="badge-nearest" id="nearestBadge" style="display:none;">Nearest</span>
+
+            <!-- VOUCHER DROPDOWN -->
+            <div class="voucher-dropdown" id="voucherDropdown">
+                <label for="voucherSelect"><i class="fas fa-ticket-alt"></i> Apply Voucher</label>
+                <select id="voucherSelect" onchange="applyVoucher()">
+                    <option value="">No voucher</option>
+                </select>
+                <div class="voucher-info" id="voucherInfo">
+                    <span>Select a voucher to apply</span>
+                </div>
             </div>
-            <div class="branch-info-row">
-                <i class="fas fa-location-arrow"></i>
-                <span>Distance: <span class="distance-value" id="selectedBranchDistance">--</span></span>
-            </div>
-            <div class="branch-info-row" id="deliveryInfoRow" style="display:none;">
-                <i class="fas fa-truck"></i>
-                <span>Delivery to: <span id="deliveryAddressDisplay" style="font-weight:500;color:#333;"></span></span>
-            </div>
-        </div>
-        
-        <div class="mt-2">
-            <label class="form-label fw-bold" style="font-size:12px;">Pickup Branch</label>
-            <div class="branch-selector-wrapper">
-                <select id="orderBranchSelect" class="form-select form-select-sm" onchange="updateModalMap(); updatePricing();">
+
+            <div class="modal-branch-selector mt-2">
+                <label style="font-size:13px;font-weight:600;margin-bottom:4px;">
+                    <i class="fas fa-store me-1"></i> Pickup Branch
+                </label>
+                <select id="modalBranchSelect" onchange="updateModalPricing()">
                     @foreach($branches as $branch)
                         <option value="{{ $branch->id }}" 
-                                data-lat="{{ $branch->latitude ?? 0 }}" 
-                                data-lng="{{ $branch->longitude ?? 0 }}"
-                                data-name="{{ str_replace('Brew & Bean Co. - ', '', $branch->name) }}"
                                 data-distance="{{ $branch->distance ?? 0 }}"
                                 {{ $branch->id == $selectedBranchId ? 'selected' : '' }}>
                             {{ str_replace('Brew & Bean Co. - ', '', $branch->name) }}
+                            @if($branch->distance)
+                                ({{ $branch->distance_text ?? '' }})
+                            @endif
                         </option>
                     @endforeach
                 </select>
-                <button class="btn-detect-branch" onclick="detectNearestBranch()" id="detectBranchBtn">
-                    <i class="fas fa-location-dot"></i> Detect Nearest
+            </div>
+
+            <!-- DELIVERY TOGGLE -->
+            <div class="delivery-toggle">
+                <label class="custom-checkbox">
+                    <input type="checkbox" id="modalDeliveryCheck" onchange="updateModalPricing()">
+                    <span class="checkmark">
+                        <span class="check-icon">✓</span>
+                    </span>
+                </label>
+                <label class="form-check-label" for="modalDeliveryCheck">
+                    <i class="fas fa-truck"></i> Delivery (₱10/km)
+                </label>
+                <span class="delivery-fee-display">
+                    Fee: <span id="modalDeliveryFee">₱0.00</span>
+                </span>
+            </div>
+
+            <div class="mt-2">
+                <input type="text" id="modalOrderNotes" class="form-control" placeholder="Special instructions..." style="font-size:13px;padding:8px 12px;border-radius:8px;border:1px solid #ddd;">
+            </div>
+
+            <div class="modal-pricing">
+                <div class="price-row">
+                    <span>Subtotal</span>
+                    <span id="modalSubtotal">₱0.00</span>
+                </div>
+                <div class="price-row discount" id="modalDiscountRow" style="display:none;">
+                    <span>Discount (<span id="modalDiscountLabel">Voucher</span>)</span>
+                    <span id="modalDiscount">-₱0.00</span>
+                </div>
+                <div class="price-row" id="modalPointsUsedRow" style="display:none;font-size:12px;color:#999;">
+                    <span>Points Used</span>
+                    <span id="modalPointsUsed">0</span>
+                </div>
+                <div class="price-row delivery-fee" id="modalDeliveryRow" style="display:none;">
+                    <span>Delivery Fee</span>
+                    <span id="modalDeliveryAmount">₱0.00</span>
+                </div>
+                <div class="price-row total">
+                    <span>Total</span>
+                    <span id="modalTotal">₱0.00</span>
+                </div>
+                <div class="points-earn">
+                    <span>Points to earn</span>
+                    <span id="modalPointsEarn">0</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <div class="modal-footer-btns">
+                <button class="btn btn-cancel" onclick="closeCheckoutModal()">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </button>
+                <button class="btn btn-confirm" onclick="placeOrder()" id="modalConfirmBtn">
+                    <i class="fas fa-check me-1"></i> Confirm Order
                 </button>
             </div>
         </div>
-        
-        <div class="mt-2" id="deliveryToggleContainer">
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="deliveryCheck" onchange="toggleDelivery()">
-                <label class="form-check-label" for="deliveryCheck" style="font-size:12px;">
-                    <i class="fas fa-truck me-1"></i> Delivery (₱10/km)
-                </label>
-            </div>
-        </div>
-        
-        <div class="mt-2">
-            <input type="text" id="orderNotes" class="form-control form-control-sm" placeholder="Special instructions...">
-        </div>
-        
-        <button class="btn w-100 mt-3" onclick="openConfirmationModal()" id="confirmOrderBtn" style="background:#6F4E37;color:white;border-radius:6px;padding:8px;font-weight:600;">
-            <i class="fas fa-check-circle me-2"></i> Confirm Order
-        </button>
     </div>
 </div>
 
-<!-- Confirmation Modal -->
-<div class="confirmation-modal" id="confirmationModal">
-    <div class="confirmation-content">
-        <button class="confirmation-close" onclick="closeConfirmationModal()">
-            <i class="fas fa-times"></i>
-        </button>
-        <div class="confirmation-header">
-            <i class="fas fa-clipboard-check"></i>
-            <h4>Confirm Order</h4>
-        </div>
-        <div class="confirmation-body" id="confirmationBody"></div>
-        <div class="confirmation-actions">
-            <button class="btn btn-cancel" onclick="closeConfirmationModal()">
-                <i class="fas fa-times me-1"></i> Cancel
-            </button>
-            <button class="btn btn-confirm" onclick="placeOrder()" id="confirmPlaceBtn">
-                <i class="fas fa-check me-1"></i> Confirm Order
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Feedback Modal -->
+<!-- ===== FEEDBACK MODAL ===== -->
 <div class="feedback-modal" id="feedbackModal">
-    <div class="feedback-modal-content">
+    <div class="feedback-content">
         <div class="feedback-icon" id="feedbackIcon">
             <i class="fas fa-check-circle"></i>
         </div>
         <h4 id="feedbackTitle">Success!</h4>
         <p id="feedbackMessage">Your order has been placed successfully.</p>
-        <div id="feedbackDetails" class="feedback-details"></div>
         <button class="feedback-btn" onclick="closeFeedbackModal()" id="feedbackBtn">
             <i class="fas fa-check me-2"></i> OK
         </button>
@@ -950,6 +997,9 @@
 
 @push('scripts')
 <script>
+    // ============================================================
+    // STATE
+    // ============================================================
     let cart = [];
     let slideIndex = 0;
     let slideInterval;
@@ -959,26 +1009,194 @@
     let customerAddress = '{{ $customer->address ?? '' }}';
     let discountRate = {{ $discountRate ?? 0 }};
     let selectedBranchId = {{ $selectedBranchId ?? 0 }};
-    let orderData = null;
+    let availableDiscounts = [];
+    let selectedDiscount = null;
+    let activeVoucher = null;
 
-    // ============= ADD TO CART =============
-    window.addToCart = function(productId, productName, productPrice) {
+    // ============================================================
+    // DISCOUNT FUNCTIONS
+    // ============================================================
+    function loadAvailableDiscounts() {
+        const subtotal = calculateSubtotal();
+        if (subtotal <= 0) {
+            document.getElementById('voucherDropdown').style.display = 'none';
+            return;
+        }
+        
+        document.getElementById('voucherDropdown').style.display = 'block';
+        
+        fetch('/customer/available-discounts?subtotal=' + subtotal)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    availableDiscounts = data.discounts || [];
+                    renderVoucherDropdown();
+                }
+            })
+            .catch(() => {
+                availableDiscounts = [];
+                renderVoucherDropdown();
+            });
+    }
+    
+    function renderVoucherDropdown() {
+        const select = document.getElementById('voucherSelect');
+        const infoDiv = document.getElementById('voucherInfo');
+        
+        if (!select) return;
+        
+        // Clear existing options except the first
+        select.innerHTML = '<option value="">No voucher</option>';
+        
+        if (!availableDiscounts || availableDiscounts.length === 0) {
+            infoDiv.innerHTML = '<span style="color:#999;">No vouchers available</span>';
+            return;
+        }
+        
+        let hasAvailable = false;
+        const subtotal = calculateSubtotal();
+        
+        availableDiscounts.forEach(discount => {
+            const isLocked = discount.locked === true;
+            const isActive = discount.is_active_voucher === true;
+            const meetsMinPurchase = subtotal >= (discount.min_purchase || 0);
+            const hasEnoughPoints = discount.points <= {{ $customer->loyalty_points ?? 0 }};
+            const isUsable = !isLocked && (isActive || (hasEnoughPoints && meetsMinPurchase));
+            
+            if (isUsable) hasAvailable = true;
+            
+            const option = document.createElement('option');
+            option.value = discount.id;
+            
+            let label = discount.label;
+            if (isActive) label += ' ✅ Active';
+            if (isLocked) label += ' 🔒 Locked';
+            if (discount.value) label += ' (-₱' + discount.value + ')';
+            
+            option.textContent = label;
+            
+            if (isLocked) {
+                option.disabled = true;
+                let reason = '';
+                if (!meetsMinPurchase && discount.min_purchase > 0) {
+                    reason = ' (Min ₱' + discount.min_purchase + ')';
+                } else if (!hasEnoughPoints) {
+                    reason = ' (Need ' + discount.points + ' pts)';
+                }
+                option.textContent += reason;
+            } else if (isActive) {
+                option.textContent += ' ✅';
+            } else if (!meetsMinPurchase) {
+                option.disabled = true;
+                option.textContent += ' (Min ₱' + discount.min_purchase + ')';
+            } else if (!hasEnoughPoints) {
+                option.disabled = true;
+                option.textContent += ' (Need ' + discount.points + ' pts)';
+            }
+            
+            select.appendChild(option);
+        });
+        
+        // Update info
+        if (hasAvailable) {
+            infoDiv.innerHTML = '<span style="color:#28a745;">✅ Select a voucher to apply</span>';
+        } else {
+            infoDiv.innerHTML = '<span style="color:#999;">No vouchers available for this order</span>';
+        }
+        
+        // Auto-select active voucher if available
+        setTimeout(function() {
+            const activeVoucherOption = Array.from(select.options).find(opt => {
+                const discount = availableDiscounts.find(d => d.id === opt.value);
+                return discount && discount.is_active_voucher === true && !opt.disabled;
+            });
+            if (activeVoucherOption) {
+                select.value = activeVoucherOption.value;
+                applyVoucher();
+            }
+        }, 100);
+    }
+    
+    function applyVoucher() {
+        const select = document.getElementById('voucherSelect');
+        const voucherId = select.value;
+        
+        if (!voucherId) {
+            selectedDiscount = null;
+            document.getElementById('selectedDiscountDisplay').style.display = 'none';
+            updateModalPricing();
+            return;
+        }
+        
+        const discount = availableDiscounts.find(d => d.id === voucherId);
+        if (!discount) return;
+        
+        // Check if disabled
+        if (discount.locked) {
+            alert('This voucher is locked.');
+            select.value = '';
+            return;
+        }
+        
+        // Check min purchase
+        const subtotal = calculateSubtotal();
+        if (discount.min_purchase > 0 && subtotal < discount.min_purchase) {
+            alert('Minimum purchase of ₱' + discount.min_purchase + ' required.');
+            select.value = '';
+            return;
+        }
+        
+        // Check points
+        if (discount.points > 0 && discount.points > {{ $customer->loyalty_points ?? 0 }}) {
+            alert('You need ' + discount.points + ' points.');
+            select.value = '';
+            return;
+        }
+        
+        selectedDiscount = discount;
+        document.getElementById('selectedDiscountDisplay').style.display = 'block';
+        document.getElementById('selectedDiscountName').textContent = discount.label;
+        document.getElementById('selectedDiscountValue').textContent = '-₱' + discount.value;
+        document.getElementById('selectedDiscountPoints').textContent = discount.points + ' pts';
+        
+        updateModalPricing();
+    }
+
+    function calculateSubtotal() {
+        let subtotal = 0;
+        cart.forEach(item => {
+            subtotal += item.price * item.quantity;
+        });
+        return subtotal;
+    }
+
+    // ============================================================
+    // CART FUNCTIONS
+    // ============================================================
+    function addToCart(productId, productName, productPrice) {
         const existing = cart.find(item => item.id === productId);
         if (existing) {
             existing.quantity += 1;
         } else {
-            cart.push({ id: productId, name: productName, price: productPrice, quantity: 1 });
+            const img = document.querySelector(`.product-item[data-product-id="${productId}"] img`);
+            cart.push({ 
+                id: productId, 
+                name: productName, 
+                price: productPrice, 
+                quantity: 1, 
+                image: img ? img.src : null 
+            });
         }
         updateCart();
         updateBadge(productId);
-        updateFloatingButton();
-    };
+        updateBubble();
+    }
 
     function removeFromCart(id) {
         cart = cart.filter(item => item.id !== id);
         updateCart();
         updateBadge(id);
-        updateFloatingButton();
+        updateBubble();
     }
 
     function updateQuantity(id, change) {
@@ -991,7 +1209,7 @@
             }
             updateCart();
             updateBadge(id);
-            updateFloatingButton();
+            updateBubble();
         }
     }
 
@@ -1011,6 +1229,7 @@
     function updateCart() {
         const cartItems = document.getElementById('cartItems');
         const cartTotalEl = document.getElementById('cartTotal');
+        const itemCountDisplay = document.getElementById('itemCountDisplay');
         
         if (!cartItems) return;
         
@@ -1022,16 +1241,19 @@
                 </p>
             `;
             if (cartTotalEl) cartTotalEl.textContent = '₱0.00';
+            if (itemCountDisplay) itemCountDisplay.textContent = '0';
             updateFloatingButton();
             return;
         }
 
         let html = '';
         let total = 0;
+        let count = 0;
 
         cart.forEach(item => {
             const subtotal = item.price * item.quantity;
             total += subtotal;
+            count += item.quantity;
             html += `
                 <div class="cart-item">
                     <div>
@@ -1052,10 +1274,13 @@
 
         cartItems.innerHTML = html;
         if (cartTotalEl) cartTotalEl.textContent = '₱' + total.toFixed(2);
+        if (itemCountDisplay) itemCountDisplay.textContent = count;
         updateFloatingButton();
     }
 
-    // ============= FLOATING CHECKOUT BUTTON =============
+    // ============================================================
+    // FLOATING BUTTON
+    // ============================================================
     function updateFloatingButton() {
         const btn = document.getElementById('floatingCheckout');
         const countEl = document.getElementById('floatingItemCount');
@@ -1074,46 +1299,289 @@
         
         if (count > 0) {
             btn.style.display = 'flex';
-            countEl.textContent = count;
-            totalEl.textContent = '₱' + total.toFixed(2);
+            if (countEl) countEl.textContent = count;
+            if (totalEl) totalEl.textContent = '₱' + total.toFixed(2);
         } else {
             btn.style.display = 'none';
         }
     }
 
-    // ============= SWITCH BRANCH =============
+    // ============================================================
+    // CHECKOUT BUBBLE
+    // ============================================================
+    function updateBubble() {
+        const bubble = document.getElementById('checkoutBubble');
+        const countEl = document.getElementById('bubbleCount');
+        const totalEl = document.getElementById('bubbleTotal');
+        
+        if (!bubble) return;
+        
+        if (cart && cart.length > 0) {
+            let total = 0;
+            let count = 0;
+            cart.forEach(item => {
+                total += (item.price || 0) * (item.quantity || 0);
+                count += (item.quantity || 0);
+            });
+            
+            if (countEl) countEl.textContent = count;
+            if (totalEl) totalEl.textContent = '₱' + total.toFixed(2);
+            bubble.classList.add('show');
+            bubble.classList.remove('hide');
+        } else {
+            bubble.classList.remove('show');
+            bubble.classList.add('hide');
+            setTimeout(() => {
+                bubble.classList.remove('hide');
+            }, 300);
+        }
+    }
+
+    function openCheckout() {
+        if (cart.length === 0) {
+            const bubble = document.getElementById('checkoutBubble');
+            bubble.style.background = '#dc3545';
+            setTimeout(() => {
+                bubble.style.background = '';
+            }, 500);
+            return;
+        }
+        openCheckoutModal();
+    }
+
+    // ============================================================
+    // CHECKOUT MODAL
+    // ============================================================
+    function openCheckoutModal() {
+        if (cart.length === 0) {
+            alert('Your cart is empty!');
+            return;
+        }
+        document.getElementById('checkoutModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
+        renderModalItems();
+        loadAvailableDiscounts();
+        updateModalPricing();
+    }
+
+    function closeCheckoutModal() {
+        document.getElementById('checkoutModal').classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    function renderModalItems() {
+        const container = document.getElementById('modalCartItems');
+        
+        if (cart.length === 0) {
+            container.innerHTML = '<div class="text-center py-4"><i class="fas fa-shopping-cart fa-3x text-muted mb-2"></i><p>Your cart is empty</p></div>';
+            return;
+        }
+
+        let html = '';
+        cart.forEach(item => {
+            const subtotal = item.price * item.quantity;
+            const imgHtml = item.image 
+                ? `<img src="${item.image}" alt="${item.name}">` 
+                : `<div class="no-img"><i class="fas fa-coffee"></i></div>`;
+            
+            html += `
+                <div class="checkout-item">
+                    <div class="item-img">${imgHtml}</div>
+                    <div class="item-info">
+                        <div class="name">${item.name}</div>
+                        <div class="price">₱${item.price.toFixed(2)}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="qty-btn" onclick="updateQuantity(${item.id}, -1)">−</button>
+                        <span class="qty-num">${item.quantity}</span>
+                        <button class="qty-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
+                    </div>
+                    <div class="item-subtotal">₱${subtotal.toFixed(2)}</div>
+                    <button class="item-remove" onclick="removeFromCart(${item.id})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    function updateModalPricing() {
+        let subtotal = 0;
+        cart.forEach(item => { subtotal += item.price * item.quantity; });
+        
+        const discountAmount = selectedDiscount ? selectedDiscount.value : 0;
+        const select = document.getElementById('modalBranchSelect');
+        const selectedOption = select?.options[select.selectedIndex];
+        let distance = parseFloat(selectedOption?.dataset.distance) || 0;
+        const isDelivery = document.getElementById('modalDeliveryCheck')?.checked || false;
+        const deliveryFee = isDelivery ? (distance * 10) : 0;
+        const total = subtotal - discountAmount + deliveryFee;
+        const pointsEarned = Math.floor(total / 100);
+
+        document.getElementById('modalSubtotal').textContent = '₱' + subtotal.toFixed(2);
+        
+        // Update discount row
+        const discountRow = document.getElementById('modalDiscountRow');
+        const discountLabel = document.getElementById('modalDiscountLabel');
+        if (discountAmount > 0 && selectedDiscount) {
+            discountRow.style.display = 'flex';
+            discountLabel.textContent = selectedDiscount.label || 'Voucher';
+            document.getElementById('modalDiscount').textContent = '-₱' + discountAmount.toFixed(2);
+        } else {
+            discountRow.style.display = 'none';
+        }
+
+        // Update points used
+        const pointsRow = document.getElementById('modalPointsUsedRow');
+        if (selectedDiscount && selectedDiscount.points > 0) {
+            pointsRow.style.display = 'flex';
+            document.getElementById('modalPointsUsed').textContent = selectedDiscount.points;
+        } else {
+            pointsRow.style.display = 'none';
+        }
+
+        // Update delivery fee
+        const deliveryRow = document.getElementById('modalDeliveryRow');
+        if (deliveryFee > 0) {
+            deliveryRow.style.display = 'flex';
+            document.getElementById('modalDeliveryAmount').textContent = '₱' + deliveryFee.toFixed(2);
+            document.getElementById('modalDeliveryFee').textContent = '₱' + deliveryFee.toFixed(2);
+        } else {
+            deliveryRow.style.display = 'none';
+            document.getElementById('modalDeliveryFee').textContent = '₱0.00';
+        }
+
+        document.getElementById('modalTotal').textContent = '₱' + total.toFixed(2);
+        document.getElementById('modalPointsEarn').textContent = pointsEarned;
+        
+        // Update points display
+        document.getElementById('modalPointsDisplay').textContent = '{{ $customer->loyalty_points ?? 0 }}';
+    }
+
+    // ============================================================
+    // PLACE ORDER
+    // ============================================================
+    function placeOrder() {
+        if (cart.length === 0) {
+            alert('Your cart is empty!');
+            return;
+        }
+
+        const branchId = document.getElementById('modalBranchSelect')?.value;
+        const isDelivery = document.getElementById('modalDeliveryCheck')?.checked || false;
+        const notes = document.getElementById('modalOrderNotes')?.value || '';
+
+        if (!branchId) {
+            alert('Please select a branch.');
+            return;
+        }
+
+        const btn = document.getElementById('modalConfirmBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
+
+        const items = cart.map(item => ({ product_id: item.id, quantity: item.quantity }));
+
+        let useDiscount = false;
+        let discountId = null;
+        
+        if (selectedDiscount) {
+            useDiscount = true;
+            discountId = selectedDiscount.id;
+        }
+
+        const payload = {
+            items: items,
+            branch_id: parseInt(branchId),
+            is_delivery: isDelivery,
+            delivery_address: isDelivery ? customerAddress : null,
+            notes: notes,
+            use_points_discount: useDiscount,
+            discount_id: discountId
+        };
+
+        fetch('{{ route("customer.place-order") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i> Confirm Order';
+            
+            if (data.success) {
+                showFeedback('success', 'Order Placed!', 'Your order #' + data.order_id + ' has been placed successfully.');
+                cart = [];
+                updateCart();
+                updateBubble();
+                closeCheckoutModal();
+                document.getElementById('modalOrderNotes').value = '';
+                document.getElementById('modalDeliveryCheck').checked = false;
+                selectedDiscount = null;
+                document.getElementById('voucherSelect').value = '';
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showFeedback('error', 'Order Failed', data.message);
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i> Confirm Order';
+            showFeedback('error', 'Error', 'An error occurred. Please try again.');
+        });
+    }
+
+    // ============================================================
+    // FEEDBACK MODAL
+    // ============================================================
+    function showFeedback(type, title, message) {
+        const modal = document.getElementById('feedbackModal');
+        const icon = document.getElementById('feedbackIcon');
+        const titleEl = document.getElementById('feedbackTitle');
+        const msgEl = document.getElementById('feedbackMessage');
+        const btn = document.getElementById('feedbackBtn');
+        
+        icon.className = 'feedback-icon ' + type;
+        
+        const types = {
+            success: { icon: 'fa-check-circle', color: '#28a745', btnClass: 'btn-success' },
+            error: { icon: 'fa-times-circle', color: '#dc3545', btnClass: 'btn-danger' },
+            warning: { icon: 'fa-exclamation-triangle', color: '#ffc107', btnClass: 'btn-warning' }
+        };
+        
+        const t = types[type] || types.warning;
+        icon.innerHTML = `<i class="fas ${t.icon}" style="color:${t.color}"></i>`;
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+        btn.className = 'feedback-btn ' + t.btnClass;
+        btn.innerHTML = `<i class="fas fa-check me-2"></i> OK`;
+        
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeFeedbackModal() {
+        document.getElementById('feedbackModal').classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    // ============================================================
+    // OTHER FUNCTIONS
+    // ============================================================
     function switchBranch() {
         const branchId = document.getElementById('branchSelect').value;
         window.location.href = `/customer/dashboard?branch_id=${branchId}`;
     }
 
     function updateAvailableCount() {
-        const available = document.querySelectorAll('.product-item[data-available="true"]').length;
+        const available = document.querySelectorAll('.product-item[data-available="true"]:not([style*="display: none"])').length;
         document.getElementById('availableCount').textContent = available;
-    }
-
-    function checkCustomerAddress() {
-        const warning = document.getElementById('addressWarning');
-        const deliveryToggle = document.getElementById('deliveryToggleContainer');
-        const deliveryCheck = document.getElementById('deliveryCheck');
-        
-        if (customerAddress && customerAddress.trim() !== '') {
-            warning.style.display = 'none';
-            deliveryToggle.style.display = 'block';
-        } else {
-            warning.style.display = 'block';
-            deliveryToggle.style.display = 'none';
-            deliveryCheck.checked = false;
-        }
-    }
-
-    function toggleDelivery() {
-        const isChecked = document.getElementById('deliveryCheck').checked;
-        if (isChecked && (!customerAddress || customerAddress.trim() === '')) {
-            alert('Please set up your delivery address in your profile first.');
-            document.getElementById('deliveryCheck').checked = false;
-        }
-        updatePricing();
     }
 
     function filterProducts(filter) {
@@ -1126,7 +1594,7 @@
             else if (filter === 'available') item.style.display = isAvailable ? '' : 'none';
             else if (filter === 'soldout') item.style.display = isAvailable ? 'none' : '';
         });
-        updateAvailableCount();
+        setTimeout(updateAvailableCount, 100);
     }
 
     function getLocation() {
@@ -1170,14 +1638,11 @@
 
         allBranches.sort((a, b) => (a.distance || 999) - (b.distance || 999));
 
-        const select = document.getElementById('orderBranchSelect');
+        const select = document.getElementById('modalBranchSelect');
         select.innerHTML = '';
         allBranches.forEach((branch) => {
             const option = document.createElement('option');
             option.value = branch.id;
-            option.dataset.lat = branch.latitude || 0;
-            option.dataset.lng = branch.longitude || 0;
-            option.dataset.name = branch.name.replace('Brew & Bean Co. - ', '');
             option.dataset.distance = branch.distance || 0;
             const distanceText = branch.distance_text ? ` (${branch.distance_text})` : '';
             option.textContent = branch.name.replace('Brew & Bean Co. - ', '') + distanceText;
@@ -1185,333 +1650,12 @@
         });
 
         document.getElementById('locationDisplay').textContent = 'Location detected';
-        updateModalMap();
-        updatePricing();
+        updateModalPricing();
     }
 
-    function detectNearestBranch() {
-        const btn = document.getElementById('detectBranchBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Detecting...';
-        
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    userLat = position.coords.latitude;
-                    userLng = position.coords.longitude;
-                    findNearestBranch(userLat, userLng);
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-location-dot"></i> Detect Nearest';
-                },
-                function() {
-                    alert('Unable to get location. Please enable location services.');
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-location-dot"></i> Detect Nearest';
-                }
-            );
-        }
-    }
-
-    function updateModalMap() {
-        // Simple map update - just show location
-        const select = document.getElementById('orderBranchSelect');
-        const selectedOption = select?.options[select.selectedIndex];
-        if (!selectedOption) return;
-        
-        const name = selectedOption.dataset.name || 'Branch';
-        const distance = parseFloat(selectedOption.dataset.distance) || 0;
-
-        document.getElementById('selectedBranchName').textContent = name;
-        
-        if (distance > 0) {
-            const distanceText = distance < 1 ? (distance * 1000).toFixed(0) + ' m' : distance.toFixed(1) + ' km';
-            document.getElementById('selectedBranchDistance').textContent = distanceText;
-        } else {
-            document.getElementById('selectedBranchDistance').textContent = '--';
-        }
-    }
-
-    function calculatePricing() {
-        let subtotal = 0;
-        cart.forEach(item => { subtotal += item.price * item.quantity; });
-        
-        const discountAmount = (subtotal * discountRate) / 100;
-        const select = document.getElementById('orderBranchSelect');
-        const selectedOption = select?.options[select.selectedIndex];
-        let distance = parseFloat(selectedOption?.dataset.distance) || 0;
-        const isDelivery = document.getElementById('deliveryCheck')?.checked || false;
-        const deliveryFee = isDelivery ? (distance * 10) : 0;
-        const total = subtotal - discountAmount + deliveryFee;
-        const pointsEarned = Math.floor(total / 100);
-        
-        return { subtotal, discountAmount, deliveryFee, total, pointsEarned, discountRate, distance };
-    }
-
-    function updatePricing() {
-        const pricing = calculatePricing();
-        
-        document.getElementById('priceOriginal').textContent = `Subtotal: ₱${pricing.subtotal.toFixed(2)}`;
-        
-        if (pricing.discountRate > 0) {
-            document.getElementById('priceDiscount').textContent = `Discount: -₱${pricing.discountAmount.toFixed(2)} (${pricing.discountRate}%)`;
-            document.getElementById('priceDiscount').style.display = 'flex';
-        } else {
-            document.getElementById('priceDiscount').textContent = `Discount: ₱0.00 (0%)`;
-        }
-
-        const deliveryRow = document.getElementById('priceDeliveryFee');
-        if (pricing.deliveryFee > 0) {
-            deliveryRow.textContent = `Delivery Fee: ₱${pricing.deliveryFee.toFixed(2)} (${pricing.distance.toFixed(1)} km × ₱10/km)`;
-            deliveryRow.style.display = 'flex';
-        } else {
-            deliveryRow.style.display = 'none';
-        }
-        
-        document.getElementById('priceTotal').textContent = `Total: ₱${pricing.total.toFixed(2)}`;
-        document.getElementById('pointsToEarn').textContent = pricing.pointsEarned;
-    }
-
-    function openOrderModal() {
-        if (cart.length === 0) { 
-            showFeedback('warning', 'Cart is Empty', 'Please add items to your cart before checking out.');
-            return; 
-        }
-        checkCustomerAddress();
-        updatePricing();
-        document.getElementById('orderModal').classList.add('show');
-        document.body.style.overflow = 'hidden';
-        updateModalMap();
-    }
-
-    function closeOrderModal() {
-        document.getElementById('orderModal').classList.remove('show');
-        document.body.style.overflow = '';
-    }
-
-    function openConfirmationModal() {
-        if (cart.length === 0) { 
-            showFeedback('warning', 'Cart is Empty', 'Please add items to your cart before checking out.');
-            return; 
-        }
-
-        const branchId = document.getElementById('orderBranchSelect')?.value;
-        const isDelivery = document.getElementById('deliveryCheck')?.checked || false;
-        const notes = document.getElementById('orderNotes')?.value || '';
-
-        if (!branchId) { 
-            showFeedback('warning', 'No Branch Selected', 'Please select a branch.');
-            return; 
-        }
-        
-        if (isDelivery && (!customerAddress || customerAddress.trim() === '')) {
-            showFeedback('warning', 'Address Required', 'Please set up your delivery address in your profile first.');
-            return;
-        }
-
-        const pricing = calculatePricing();
-        const selectedOption = document.getElementById('orderBranchSelect')?.options[document.getElementById('orderBranchSelect')?.selectedIndex];
-        
-        let itemsHtml = '';
-        cart.forEach(item => {
-            const subtotalItem = item.price * item.quantity;
-            itemsHtml += `
-                <div class="order-summary-item">
-                    <span>${item.name} × ${item.quantity}</span>
-                    <span>₱${subtotalItem.toFixed(2)}</span>
-                </div>
-            `;
-        });
-
-        let summaryHtml = `
-            <div class="summary-row">
-                <span class="label">Subtotal</span>
-                <span class="value">₱${pricing.subtotal.toFixed(2)}</span>
-            </div>
-        `;
-
-        if (pricing.discountAmount > 0) {
-            summaryHtml += `
-                <div class="summary-row">
-                    <span class="label">Discount (${pricing.discountRate}%)</span>
-                    <span class="value discount">-₱${pricing.discountAmount.toFixed(2)}</span>
-                </div>
-            `;
-        }
-
-        if (pricing.deliveryFee > 0) {
-            summaryHtml += `
-                <div class="summary-row">
-                    <span class="label">Delivery Fee (${pricing.distance.toFixed(1)} km)</span>
-                    <span class="value delivery">₱${pricing.deliveryFee.toFixed(2)}</span>
-                </div>
-            `;
-        }
-
-        summaryHtml += `
-            <div class="summary-total">
-                <span>Total</span>
-                <span>₱${pricing.total.toFixed(2)}</span>
-            </div>
-            <div class="summary-row" style="border-top:1px solid #eee;padding-top:4px;margin-top:4px;">
-                <span class="label">Points to earn</span>
-                <span class="value">${pricing.pointsEarned}</span>
-            </div>
-            <div class="summary-row">
-                <span class="label">Branch</span>
-                <span class="value">${selectedOption?.text || 'N/A'}</span>
-            </div>
-            <div class="summary-row">
-                <span class="label">Type</span>
-                <span class="value">${isDelivery ? 'Delivery' : 'Pickup'}</span>
-            </div>
-        `;
-
-        document.getElementById('confirmationBody').innerHTML = `
-            <div style="margin-bottom:10px;font-weight:600;color:#333;">Items</div>
-            ${itemsHtml}
-            <div style="margin-top:12px;padding-top:10px;border-top:1px solid #eee;">
-                ${summaryHtml}
-            </div>
-        `;
-
-        orderData = {
-            branchId: parseInt(branchId),
-            isDelivery: isDelivery,
-            notes: notes || null,
-            items: cart.map(item => ({ product_id: item.id, quantity: item.quantity }))
-        };
-
-        document.getElementById('confirmationModal').classList.add('show');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeConfirmationModal() {
-        document.getElementById('confirmationModal').classList.remove('show');
-        document.body.style.overflow = '';
-        orderData = null;
-    }
-
-    function placeOrder() {
-        if (!orderData) return;
-
-        const btn = document.getElementById('confirmPlaceBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
-
-        fetch('{{ route("customer.place-order") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                items: orderData.items,
-                branch_id: orderData.branchId,
-                is_delivery: orderData.isDelivery,
-                delivery_address: orderData.isDelivery ? customerAddress : null,
-                notes: orderData.notes
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check me-1"></i> Confirm Order';
-            closeConfirmationModal();
-            
-            if (data.success) {
-                const details = `
-                    <div class="detail-row">
-                        <span class="label">Order #</span>
-                        <span class="value">${data.order_id}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="label">Total</span>
-                        <span class="value text-success">₱${data.total.toFixed(2)}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="label">Points Earned</span>
-                        <span class="value">+${data.points_earned}</span>
-                    </div>
-                    ${data.delivery_fee > 0 ? `
-                    <div class="detail-row">
-                        <span class="label">Delivery Fee</span>
-                        <span class="value">₱${data.delivery_fee.toFixed(2)}</span>
-                    </div>
-                    ` : ''}
-                `;
-                
-                showFeedback('success', 'Order Placed!', `Your order #${data.order_id} has been placed successfully.`, details);
-                
-                cart = [];
-                updateCart();
-                updateFloatingButton();
-                document.getElementById('orderNotes').value = '';
-                document.getElementById('deliveryCheck').checked = false;
-                closeOrderModal();
-                
-                setTimeout(() => { location.reload(); }, 3000);
-            } else {
-                if (data.message.includes('out of stock') || data.message.includes('stock')) {
-                    showFeedback('error', 'Out of Stock', data.message);
-                } else {
-                    showFeedback('error', 'Order Failed', data.message);
-                }
-            }
-        })
-        .catch(error => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check me-1"></i> Confirm Order';
-            closeConfirmationModal();
-            showFeedback('error', 'Error', 'An error occurred. Please try again.');
-        });
-    }
-
-    function showFeedback(type, title, message, details = '') {
-        const modal = document.getElementById('feedbackModal');
-        const icon = document.getElementById('feedbackIcon');
-        const titleEl = document.getElementById('feedbackTitle');
-        const msgEl = document.getElementById('feedbackMessage');
-        const detailsEl = document.getElementById('feedbackDetails');
-        const btn = document.getElementById('feedbackBtn');
-        const content = modal.querySelector('.feedback-modal-content');
-        
-        content.className = 'feedback-modal-content';
-        icon.className = 'feedback-icon';
-        
-        const types = {
-            success: { icon: 'fa-check-circle', color: '#28a745', btnClass: 'btn-success', btnText: 'Continue' },
-            error: { icon: 'fa-times-circle', color: '#dc3545', btnClass: 'btn-danger', btnText: 'Try Again' },
-            warning: { icon: 'fa-exclamation-triangle', color: '#ffc107', btnClass: 'btn-warning', btnText: 'OK' }
-        };
-        
-        const t = types[type] || types.warning;
-        
-        content.classList.add(type);
-        icon.className = 'feedback-icon ' + type;
-        icon.innerHTML = `<i class="fas ${t.icon}" style="color:${t.color}"></i>`;
-        titleEl.textContent = title;
-        msgEl.textContent = message;
-        
-        if (details) {
-            detailsEl.innerHTML = details;
-            detailsEl.style.display = 'block';
-        } else {
-            detailsEl.style.display = 'none';
-        }
-        
-        btn.className = 'feedback-btn ' + t.btnClass;
-        btn.innerHTML = `<i class="fas fa-check me-2"></i> ${t.btnText}`;
-        
-        modal.classList.add('show');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeFeedbackModal() {
-        document.getElementById('feedbackModal').classList.remove('show');
-        document.body.style.overflow = '';
-    }
-
-    // ============= SLIDESHOW =============
+    // ============================================================
+    // SLIDESHOW
+    // ============================================================
     function startSlideshow() { slideInterval = setInterval(nextSlide, 4000); }
 
     function nextSlide() {
@@ -1537,7 +1681,9 @@
         startSlideshow();
     }
 
-    // ============= SEARCH =============
+    // ============================================================
+    // SEARCH
+    // ============================================================
     document.getElementById('searchProduct')?.addEventListener('keyup', function() {
         const search = this.value.toLowerCase();
         document.querySelectorAll('.product-item').forEach(item => {
@@ -1546,33 +1692,32 @@
         });
     });
 
-    // ============= INIT =============
+    // ============================================================
+    // INIT
+    // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
         getLocation();
         startSlideshow();
         updateCart();
-        checkCustomerAddress();
         updateAvailableCount();
-        setTimeout(updateFloatingButton, 200);
-    });
+        updateBubble();
+        
+        // Close modal on outside click
+        document.getElementById('checkoutModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeCheckoutModal();
+        });
+        
+        document.getElementById('feedbackModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeFeedbackModal();
+        });
 
-    document.getElementById('orderModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeOrderModal();
-    });
-    
-    document.getElementById('confirmationModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeConfirmationModal();
-    });
-
-    document.getElementById('feedbackModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeFeedbackModal();
-    });
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeConfirmationModal();
-            closeFeedbackModal();
-        }
+        // Escape key to close
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeCheckoutModal();
+                closeFeedbackModal();
+            }
+        });
     });
 </script>
 @endpush

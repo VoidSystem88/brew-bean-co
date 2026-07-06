@@ -25,28 +25,38 @@ class StaffController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
-            'role' => ['required', Rule::in(['admin', 'manager', 'staff', 'delivery'])],
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|string|min:8',
+        'role' => ['required', Rule::in(['admin', 'manager', 'staff', 'delivery'])],
+    ]);
+
+    // Only require branch_id for staff and delivery roles
+    if (in_array($request->role, ['staff', 'delivery'])) {
+        $request->validate([
             'branch_id' => 'required|exists:branches,id',
         ]);
-
-        $validated['password'] = Hash::make($validated['password']);
-        $validated['is_active'] = 1;
-
-        User::create($validated);
-
-        $roleName = ucfirst($validated['role']);
-        if ($roleName === 'Delivery') {
-            $roleName = 'Delivery Rider';
-        }
-
-        return redirect()->route('staff.index')
-            ->with('success', $roleName . ' created successfully.');
+        $validated['branch_id'] = $request->branch_id;
+    } else {
+        // Admin and Manager have no branch restriction
+        $validated['branch_id'] = null;
     }
+
+    $validated['password'] = Hash::make($validated['password']);
+    $validated['is_active'] = 1;
+
+    User::create($validated);
+
+    $roleName = ucfirst($validated['role']);
+    if ($roleName === 'Delivery') {
+        $roleName = 'Delivery Rider';
+    }
+
+    return redirect()->route('staff.index')
+        ->with('success', $roleName . ' created successfully.');
+}
 
     public function edit(User $staff)
     {
@@ -55,29 +65,39 @@ class StaffController extends Controller
     }
 
     public function update(Request $request, User $staff)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('users')->ignore($staff->id)],
-            'role' => ['required', Rule::in(['admin', 'manager', 'staff', 'delivery'])],
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => ['required', 'email', Rule::unique('users')->ignore($staff->id)],
+        'role' => ['required', Rule::in(['admin', 'manager', 'staff', 'delivery'])],
+    ]);
+
+    // Only require branch_id for staff and delivery roles
+    if (in_array($request->role, ['staff', 'delivery'])) {
+        $request->validate([
             'branch_id' => 'required|exists:branches,id',
         ]);
-
-        if ($request->filled('password')) {
-            $validated['password'] = Hash::make($request->password);
-            $staff->update($validated);
-        } else {
-            $staff->update([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'role' => $validated['role'],
-                'branch_id' => $validated['branch_id'],
-            ]);
-        }
-
-        return redirect()->route('staff.index')
-            ->with('success', 'Staff member updated successfully.');
+        $validated['branch_id'] = $request->branch_id;
+    } else {
+        // Admin and Manager have no branch restriction
+        $validated['branch_id'] = null;
     }
+
+    if ($request->filled('password')) {
+        $validated['password'] = Hash::make($request->password);
+        $staff->update($validated);
+    } else {
+        $staff->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'role' => $validated['role'],
+            'branch_id' => $validated['branch_id'],
+        ]);
+    }
+
+    return redirect()->route('staff.index')
+        ->with('success', 'Staff member updated successfully.');
+}
 
     public function destroy(User $staff)
     {

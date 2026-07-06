@@ -189,20 +189,203 @@
         font-size: 14px;
         margin: 0;
     }
+    .notif-bell {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        font-size: 20px;
+        color: #6F4E37;
+        padding: 4px 8px;
+        transition: 0.2s;
+    }
+    .notif-bell:hover {
+        transform: scale(1.1);
+        color: #5a3d2b;
+    }
+    .notif-bell .notif-dot {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 12px;
+        height: 12px;
+        background: #dc3545;
+        border-radius: 50%;
+        border: 2px solid white;
+        animation: pulse-dot 1.5s infinite;
+    }
+    .notif-bell .notif-count {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: #dc3545;
+        color: white;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 10px;
+        border: 2px solid white;
+        min-width: 18px;
+        text-align: center;
+        line-height: 14px;
+    }
+    
+    @keyframes pulse-dot {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.4); }
+    }
+    
+    .notif-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        width: 380px;
+        max-height: 400px;
+        overflow-y: auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        border: 1px solid #e8e8e8;
+        display: none;
+        z-index: 999;
+        margin-top: 8px;
+    }
+    .notif-dropdown.show {
+        display: block;
+        animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .notif-dropdown .notif-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid #eee;
+        font-weight: 600;
+        font-size: 14px;
+        color: #333;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #faf8f6;
+        border-radius: 12px 12px 0 0;
+    }
+    .notif-dropdown .notif-header .mark-read {
+        font-size: 12px;
+        color: #6F4E37;
+        cursor: pointer;
+        background: none;
+        border: none;
+        font-weight: 500;
+    }
+    .notif-dropdown .notif-header .mark-read:hover {
+        text-decoration: underline;
+    }
+    .notif-dropdown .notif-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f5f5f5;
+        transition: 0.2s;
+        cursor: pointer;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    .notif-dropdown .notif-item:hover {
+        background: #f8f6f4;
+    }
+    .notif-dropdown .notif-item:last-child {
+        border-bottom: none;
+    }
+    .notif-dropdown .notif-item .notif-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 14px;
+    }
+    .notif-dropdown .notif-item .notif-icon.delivered {
+        background: #d4edda;
+        color: #28a745;
+    }
+    .notif-dropdown .notif-item .notif-icon.transfer {
+        background: #cce5ff;
+        color: #0d6efd;
+    }
+    .notif-dropdown .notif-item .notif-icon.alert {
+        background: #fff3cd;
+        color: #ffc107;
+    }
+    .notif-dropdown .notif-item .notif-content {
+        flex: 1;
+        min-width: 0;
+    }
+    .notif-dropdown .notif-item .notif-content .notif-title {
+        font-weight: 500;
+        font-size: 13px;
+        color: #333;
+    }
+    .notif-dropdown .notif-item .notif-content .notif-desc {
+        font-size: 12px;
+        color: #999;
+        margin-top: 2px;
+    }
+    .notif-dropdown .notif-item .notif-time {
+        font-size: 11px;
+        color: #bbb;
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-top: 4px;
+    }
+    .notif-dropdown .notif-item.unread {
+        background: #f0f7ff;
+        border-left: 3px solid #0d6efd;
+    }
+    .notif-dropdown .notif-item.unread:hover {
+        background: #e8f0fa;
+    }
+    .notif-dropdown .notif-empty {
+        padding: 30px 20px;
+        text-align: center;
+        color: #999;
+        font-size: 13px;
+    }
+    .notif-dropdown .notif-empty i {
+        font-size: 36px;
+        color: #ddd;
+        display: block;
+        margin-bottom: 8px;
+    }
+    
+    .notif-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+    
+    @media (max-width: 576px) {
+        .notif-dropdown {
+            width: 300px;
+            right: -60px;
+        }
+        .notif-dropdown .notif-item {
+            padding: 10px 12px;
+        }
+    }
 </style>
 
 <div class="container-fluid">
     <!-- Greeting -->
     <div class="greeting-section">
-        <h2>👋 Good {{ date('H') < 12 ? 'Morning' : (date('H') < 18 ? 'Afternoon' : 'Evening') }}, {{ Auth::user()->name }}!</h2>
-        <p>Your branch: <strong>{{ str_replace('☕ Brew & Bean Co. - ', '', Auth::user()->branch->name ?? 'N/A') }}</strong></p>
+        <h2>ðŸ‘‹ Good {{ date('H') < 12 ? 'Morning' : (date('H') < 18 ? 'Afternoon' : 'Evening') }}, {{ Auth::user()->name }}!</h2>
+        <p>Your branch: <strong>{{ str_replace('â˜• Brew & Bean Co. - ', '', Auth::user()->branch->name ?? 'N/A') }}</strong></p>
     </div>
 
     <!-- Stats -->
     <div class="row mb-4">
         <div class="col-md-4 col-6 mb-3">
             <div class="stat-card">
-                <div class="stat-number">₱{{ number_format($todaySales, 2) }}</div>
+                <div class="stat-number">â‚±{{ number_format($todaySales, 2) }}</div>
                 <div class="stat-label">Today's Sales</div>
             </div>
         </div>
@@ -224,7 +407,7 @@
     @if($pendingTransfersCount > 0)
         <div class="transfer-alert">
             <div>
-                <span class="alert-icon">📦</span>
+                <span class="alert-icon">ðŸ“¦</span>
                 <span class="alert-text">
                     You have <strong>{{ $pendingTransfersCount }}</strong> pending delivery transfer(s)
                 </span>
@@ -255,15 +438,15 @@
                             <div class="activity-title">
                                 Order #{{ $order->id }}
                                 @if($order->is_offline)
-                                    <span class="sync-badge pending">📡 Offline</span>
+                                    <span class="sync-badge pending">ðŸ“¡ Offline</span>
                                 @else
-                                    <span class="sync-badge synced">✅ Synced</span>
+                                    <span class="sync-badge synced">âœ… Synced</span>
                                 @endif
                             </div>
                             <div class="activity-time">
-                                {{ $order->user->name ?? 'Staff' }} • {{ $order->sale_date->diffForHumans() }}
+                                {{ $order->user->name ?? 'Staff' }} â€¢ {{ $order->sale_date->diffForHumans() }}
                                 @if($order->branch)
-                                    • {{ str_replace('☕ Brew & Bean Co. - ', '', $order->branch->name) }}
+                                    â€¢ {{ str_replace('â˜• Brew & Bean Co. - ', '', $order->branch->name) }}
                                 @endif
                             </div>
                             <!-- Tooltip for order items -->
@@ -271,15 +454,15 @@
                                 @foreach($order->items as $item)
                                     <div class="tooltip-item">
                                         <span>{{ $item->product->name ?? 'Unknown' }}</span>
-                                        <span>×{{ $item->quantity }}</span>
+                                        <span>Ã—{{ $item->quantity }}</span>
                                     </div>
                                 @endforeach
                                 <div class="tooltip-total">
-                                    Total: ₱{{ number_format($order->total_amount, 2) }}
+                                    Total: â‚±{{ number_format($order->total_amount, 2) }}
                                 </div>
                             </div>
                         </div>
-                        <div class="activity-amount">₱{{ number_format($order->total_amount, 2) }}</div>
+                        <div class="activity-amount">â‚±{{ number_format($order->total_amount, 2) }}</div>
                     </div>
                 @endforeach
             @else
@@ -301,7 +484,7 @@
                             <div class="item-name">{{ $transfer->item->name ?? 'Unknown' }}</div>
                             <div class="item-from">
                                 <i class="fas fa-warehouse me-1"></i>
-                                From: {{ str_replace('☕ Brew & Bean Co. - ', '', $transfer->fromBranch->name ?? 'Warehouse') }}
+                                From: {{ str_replace('â˜• Brew & Bean Co. - ', '', $transfer->fromBranch->name ?? 'Warehouse') }}
                             </div>
                         </div>
                         <div class="text-end">

@@ -25,51 +25,11 @@ class CustomerAuthController extends Controller
     private function getAvailableDiscounts($points, $subtotal = 0)
     {
         $discounts = [
-            [
-                'id' => 'small', 
-                'points' => 50, 
-                'value' => 20, 
-                'label' => 'Small Discount',
-                'min_purchase' => 100,
-                'icon' => 'fa-coffee',
-                'color' => '#6F8A6F'
-            ],
-            [
-                'id' => 'medium', 
-                'points' => 100, 
-                'value' => 50, 
-                'label' => 'Medium Discount',
-                'min_purchase' => 200,
-                'icon' => 'fa-mug-hot',
-                'color' => '#5A7A8A'
-            ],
-            [
-                'id' => 'large', 
-                'points' => 200, 
-                'value' => 100, 
-                'label' => 'Large Discount',
-                'min_purchase' => 400,
-                'icon' => 'fa-crown',
-                'color' => '#B8974A'
-            ],
-            [
-                'id' => 'premium', 
-                'points' => 400, 
-                'value' => 200, 
-                'label' => 'Premium Discount',
-                'min_purchase' => 800,
-                'icon' => 'fa-gem',
-                'color' => '#7A5A8A'
-            ],
-            [
-                'id' => 'vip', 
-                'points' => 800, 
-                'value' => 500, 
-                'label' => 'VIP Discount',
-                'min_purchase' => 1500,
-                'icon' => 'fa-star',
-                'color' => '#8A5A4A'
-            ],
+            ['id' => 'small', 'points' => 50, 'value' => 20, 'label' => 'Small Discount', 'min_purchase' => 100],
+            ['id' => 'medium', 'points' => 100, 'value' => 50, 'label' => 'Medium Discount', 'min_purchase' => 200],
+            ['id' => 'large', 'points' => 200, 'value' => 100, 'label' => 'Large Discount', 'min_purchase' => 400],
+            ['id' => 'premium', 'points' => 400, 'value' => 200, 'label' => 'Premium Discount', 'min_purchase' => 800],
+            ['id' => 'vip', 'points' => 800, 'value' => 500, 'label' => 'VIP Discount', 'min_purchase' => 1500],
         ];
         
         $available = [];
@@ -78,7 +38,6 @@ class CustomerAuthController extends Controller
                 $available[] = $discount;
             }
         }
-        
         return $available;
     }
 
@@ -86,9 +45,7 @@ class CustomerAuthController extends Controller
     {
         $customer = Auth::guard('customer')->user();
         $subtotal = $request->subtotal ?? 0;
-        
         $discounts = $this->getAvailableDiscounts($customer->loyalty_points ?? 0, $subtotal);
-        
         return response()->json([
             'success' => true,
             'discounts' => $discounts,
@@ -100,13 +57,9 @@ class CustomerAuthController extends Controller
     public function loyaltyPoints()
     {
         $customer = Auth::guard('customer')->user();
-        
-        if (!$customer) {
-            return redirect()->route('customer.login');
-        }
+        if (!$customer) return redirect()->route('customer.login');
 
         $currentPoints = $customer->loyalty_points ?? 0;
-        
         $tiers = [
             ['points' => 0, 'discount' => 0, 'label' => 'Bronze', 'color' => '#cd7f32'],
             ['points' => 100, 'discount' => 5, 'label' => 'Silver', 'color' => '#c0c0c0'],
@@ -117,13 +70,10 @@ class CustomerAuthController extends Controller
 
         $currentTier = $tiers[0];
         $nextTier = null;
-        
         foreach ($tiers as $index => $tier) {
             if ($currentPoints >= $tier['points']) {
                 $currentTier = $tier;
-                if (isset($tiers[$index + 1])) {
-                    $nextTier = $tiers[$index + 1];
-                }
+                if (isset($tiers[$index + 1])) $nextTier = $tiers[$index + 1];
             }
         }
 
@@ -136,21 +86,16 @@ class CustomerAuthController extends Controller
 
         foreach ($pointsHistory as $sale) {
             $sale->points_earned = floor($sale->total_amount / 100);
-            if ($sale->points_used) {
-                $sale->points_net = $sale->points_earned - $sale->points_used;
-            } else {
-                $sale->points_net = $sale->points_earned;
-            }
+            $sale->points_net = $sale->points_earned - ($sale->points_used ?? 0);
         }
 
         $availableDiscounts = $this->getAvailableDiscounts($currentPoints, 0);
-        
         $allVouchers = [
-            ['id' => 'small', 'points' => 50, 'value' => 20, 'label' => 'Small Discount', 'min_purchase' => 100, 'icon' => 'fa-coffee', 'color' => '#6F8A6F'],
-            ['id' => 'medium', 'points' => 100, 'value' => 50, 'label' => 'Medium Discount', 'min_purchase' => 200, 'icon' => 'fa-mug-hot', 'color' => '#5A7A8A'],
-            ['id' => 'large', 'points' => 200, 'value' => 100, 'label' => 'Large Discount', 'min_purchase' => 400, 'icon' => 'fa-crown', 'color' => '#B8974A'],
-            ['id' => 'premium', 'points' => 400, 'value' => 200, 'label' => 'Premium Discount', 'min_purchase' => 800, 'icon' => 'fa-gem', 'color' => '#7A5A8A'],
-            ['id' => 'vip', 'points' => 800, 'value' => 500, 'label' => 'VIP Discount', 'min_purchase' => 1500, 'icon' => 'fa-star', 'color' => '#8A5A4A'],
+            ['id' => 'small', 'points' => 50, 'value' => 20, 'label' => 'Small Discount', 'min_purchase' => 100],
+            ['id' => 'medium', 'points' => 100, 'value' => 50, 'label' => 'Medium Discount', 'min_purchase' => 200],
+            ['id' => 'large', 'points' => 200, 'value' => 100, 'label' => 'Large Discount', 'min_purchase' => 400],
+            ['id' => 'premium', 'points' => 400, 'value' => 200, 'label' => 'Premium Discount', 'min_purchase' => 800],
+            ['id' => 'vip', 'points' => 800, 'value' => 500, 'label' => 'VIP Discount', 'min_purchase' => 1500],
         ];
 
         return view('customer.loyalty', compact(
@@ -159,15 +104,10 @@ class CustomerAuthController extends Controller
         ));
     }
 
-    // ============= VOUCHER SYSTEM =============
     public function useVoucher($discountId)
     {
         $customer = Auth::guard('customer')->user();
-        
-        if (!$customer) {
-            return redirect()->route('customer.login')
-                ->with('error', 'Please login first.');
-        }
+        if (!$customer) return redirect()->route('customer.login')->with('error', 'Please login first.');
 
         $allVouchers = [
             ['id' => 'small', 'points' => 50, 'value' => 20, 'label' => 'Small Discount', 'min_purchase' => 100],
@@ -178,50 +118,29 @@ class CustomerAuthController extends Controller
         ];
         
         $selected = collect($allVouchers)->firstWhere('id', $discountId);
-
-        if (!$selected) {
-            return redirect()->route('customer.loyalty')
-                ->with('error', 'Voucher not available.');
-        }
-
-        if ($customer->loyalty_points < $selected['points']) {
-            return redirect()->route('customer.loyalty')
-                ->with('error', 'Not enough points to redeem this voucher.');
-        }
-
-        if (session('active_voucher')) {
-            return redirect()->route('customer.loyalty')
-                ->with('error', 'You already have an active voucher.');
-        }
-
+        if (!$selected) return redirect()->route('customer.loyalty')->with('error', 'Voucher not available.');
+        if ($customer->loyalty_points < $selected['points']) return redirect()->route('customer.loyalty')->with('error', 'Not enough points.');
+        if (session('active_voucher')) return redirect()->route('customer.loyalty')->with('error', 'You already have an active voucher.');
+        
         $customer->loyalty_points -= $selected['points'];
         $customer->save();
-
         session(['active_voucher' => $selected]);
-
-        return redirect()->route('customer.dashboard')
-            ->with('success', 'Voucher activated! Use it on your next order.');
+        return redirect()->route('customer.dashboard')->with('success', 'Voucher activated!');
     }
 
     public function removeVoucher(Request $request)
     {
         $voucher = session('active_voucher');
-        
         if ($voucher) {
             $customer = Auth::guard('customer')->user();
             if ($customer) {
                 $customer->loyalty_points += $voucher['points'];
                 $customer->save();
             }
-            
             session()->forget('active_voucher');
-            
-            return redirect()->route('customer.loyalty')
-                ->with('success', 'Voucher removed. Points refunded.');
+            return redirect()->route('customer.loyalty')->with('success', 'Voucher removed. Points refunded.');
         }
-        
-        return redirect()->route('customer.loyalty')
-            ->with('error', 'No active voucher to remove.');
+        return redirect()->route('customer.loyalty')->with('error', 'No active voucher.');
     }
 
     // ============= EXISTING METHODS =============
@@ -238,23 +157,17 @@ class CustomerAuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         $customer = Customer::where('email', $request->email)->first();
 
         if (!$customer || !Hash::check($request->password, $customer->password)) {
-            return redirect()->back()
-                ->with('error', 'Invalid email or password.')
-                ->withInput();
+            return redirect()->back()->with('error', 'Invalid email or password.')->withInput();
         }
 
         Auth::guard('customer')->login($customer);
-
-        return redirect()->route('customer.dashboard')
-            ->with('success', 'Welcome back, ' . $customer->name . '!');
+        return redirect()->route('customer.dashboard')->with('success', 'Welcome back, ' . $customer->name . '!');
     }
 
     public function showRegisterForm()
@@ -273,9 +186,7 @@ class CustomerAuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         try {
@@ -291,34 +202,24 @@ class CustomerAuthController extends Controller
             ]);
 
             Auth::guard('customer')->login($customer);
-
-            return redirect()->route('customer.dashboard')
-                ->with('success', 'Welcome to Brew & Bean Co., ' . $customer->name . '!');
-
+            return redirect()->route('customer.dashboard')->with('success', 'Welcome to Brew & Bean Co., ' . $customer->name . '!');
         } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Registration failed: ' . $e->getMessage())
-                ->withInput();
+            return redirect()->back()->with('error', 'Registration failed: ' . $e->getMessage())->withInput();
         }
     }
 
     public function logout()
     {
         Auth::guard('customer')->logout();
-        return redirect()->route('customer.login')
-            ->with('success', 'Logged out successfully.');
+        return redirect()->route('customer.login')->with('success', 'Logged out successfully.');
     }
 
     public function dashboard(Request $request)
     {
         $customer = Auth::guard('customer')->user();
-        
-        if (!$customer) {
-            return redirect()->route('customer.login');
-        }
+        if (!$customer) return redirect()->route('customer.login');
 
         $selectedBranchId = $request->branch_id ?? session('selected_branch_id');
-        
         $branches = Branch::where('is_active', true)->get();
         
         if (!$selectedBranchId && $branches->isNotEmpty()) {
@@ -335,7 +236,6 @@ class CustomerAuthController extends Controller
                 $product->stock_count = 0;
                 continue;
             }
-            
             $branchStock = $this->getProductStockInBranch($product, $selectedBranchId);
             $product->is_available = $branchStock['available'];
             $product->stock_count = $branchStock['max_quantity'] ?? 0;
@@ -345,7 +245,6 @@ class CustomerAuthController extends Controller
         $recentPurchases = $customer->sales()->with('branch')->latest()->take(10)->get();
         $totalSpent = $customer->sales()->sum('total_amount') ?? 0;
         $totalOrders = $customer->sales()->count();
-        
         $discountRate = $this->calculateDiscount($customer->loyalty_points ?? 0);
         
         $mostBought = DB::table('sale_items')
@@ -408,18 +307,10 @@ class CustomerAuthController extends Controller
                 $maxServings = $servingsPossible;
             }
 
-            if ($availableInRecipeUnit < $recipe->quantity) {
+            if ($availableInRecipeUnit < $recipe->quantity - 0.001) {
                 $available = false;
                 $missingIngredients[] = $itemName;
             }
-        }
-
-        if (!$available) {
-            Log::info('Product not available', [
-                'product' => $product->name,
-                'branch_id' => $branchId,
-                'missing_ingredients' => $missingIngredients
-            ]);
         }
 
         return [
@@ -441,7 +332,6 @@ class CustomerAuthController extends Controller
     private function getAvailableBranches($product, $branches)
     {
         $availableBranches = [];
-        
         foreach ($branches as $branch) {
             $stock = $this->getProductStockInBranch($product, $branch->id);
             if ($stock['available']) {
@@ -452,7 +342,6 @@ class CustomerAuthController extends Controller
                 ];
             }
         }
-        
         return $availableBranches;
     }
 
@@ -460,29 +349,20 @@ class CustomerAuthController extends Controller
     {
         $branchId = $request->branch_id;
         session(['selected_branch_id' => $branchId]);
-        
-        return redirect()->route('customer.dashboard')
-            ->with('success', 'Switched to selected branch');
+        return redirect()->route('customer.dashboard')->with('success', 'Switched to selected branch');
     }
 
     public function profile()
     {
         $customer = Auth::guard('customer')->user();
-        
-        if (!$customer) {
-            return redirect()->route('customer.login');
-        }
-
+        if (!$customer) return redirect()->route('customer.login');
         return view('customer.profile', compact('customer'));
     }
 
     public function updateProfile(Request $request)
     {
         $customer = Auth::guard('customer')->user();
-        
-        if (!$customer) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
-        }
+        if (!$customer) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -493,11 +373,7 @@ class CustomerAuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Validation error', 'errors' => $validator->errors()], 422);
         }
 
         try {
@@ -508,27 +384,16 @@ class CustomerAuthController extends Controller
             $customer->longitude = $request->longitude;
             $customer->save();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Profile updated successfully!',
-                'customer' => $customer
-            ]);
-
+            return response()->json(['success' => true, 'message' => 'Profile updated successfully!', 'customer' => $customer]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 400);
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 400);
         }
     }
 
     public function updateAddress(Request $request)
     {
         $customer = Auth::guard('customer')->user();
-        
-        if (!$customer) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
-        }
+        if (!$customer) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
 
         $validator = Validator::make($request->all(), [
             'address' => 'required|string|max:500',
@@ -537,11 +402,7 @@ class CustomerAuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Validation error', 'errors' => $validator->errors()], 422);
         }
 
         try {
@@ -550,17 +411,9 @@ class CustomerAuthController extends Controller
             $customer->longitude = $request->longitude;
             $customer->save();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Address updated successfully!',
-                'customer' => $customer
-            ]);
-
+            return response()->json(['success' => true, 'message' => 'Address updated successfully!', 'customer' => $customer]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 400);
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 400);
         }
     }
 
@@ -568,7 +421,6 @@ class CustomerAuthController extends Controller
     {
         $lat = $request->lat;
         $lng = $request->lng;
-        
         $branches = Branch::where('is_active', true)->get();
         
         foreach ($branches as $branch) {
@@ -595,25 +447,19 @@ class CustomerAuthController extends Controller
 
     private function formatDistance($distance)
     {
-        if ($distance < 1) {
-            return round($distance * 1000) . ' m';
-        }
+        if ($distance < 1) return round($distance * 1000) . ' m';
         return number_format($distance, 1) . ' km';
     }
 
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)
     {
         $earthRadius = 6371;
-        
         $dLat = deg2rad($lat2 - $lat1);
         $dLon = deg2rad($lon2 - $lon1);
-        
         $a = sin($dLat/2) * sin($dLat/2) +
              cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
              sin($dLon/2) * sin($dLon/2);
-        
         $c = 2 * atan2(sqrt($a), sqrt(1-$a));
-        
         return $earthRadius * $c;
     }
 
@@ -633,11 +479,7 @@ class CustomerAuthController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation error',
-                    'errors' => $validator->errors()
-                ], 422);
+                return response()->json(['success' => false, 'message' => 'Validation error', 'errors' => $validator->errors()], 422);
             }
 
             DB::beginTransaction();
@@ -648,6 +490,7 @@ class CustomerAuthController extends Controller
             $totalAmount = 0;
             $orderItems = [];
             $ingredientsUsed = [];
+            $stockErrors = [];
 
             foreach ($request->items as $item) {
                 $product = Product::with('recipes.item')->find($item['product_id']);
@@ -670,8 +513,6 @@ class CustomerAuthController extends Controller
                     $stockUnit = $itemModel->unit ?? 'g';
                     $itemName = $itemModel->name ?? 'Unknown';
                     
-                    $neededInRecipeUnit = $recipeQty * $quantityOrdered;
-                    
                     $branchStock = DB::table('branch_item')
                         ->where('branch_id', $branchId)
                         ->where('item_id', $itemId)
@@ -679,27 +520,17 @@ class CustomerAuthController extends Controller
 
                     $availableStock = $branchStock->stock_quantity ?? 0;
                     
-                    $availableInRecipeUnit = UnitConverter::convert(
-                        $availableStock,
-                        $stockUnit,
-                        $recipeUnit,
-                        $itemName,
-                        $itemId
-                    );
-
-                    if ($availableInRecipeUnit < $neededInRecipeUnit) {
-                        throw new \Exception(
-                            'Sorry, "' . $product->name . '" is currently out of stock. Please try another product or branch.'
-                        );
-                    }
-
                     $neededInStockUnit = UnitConverter::convert(
-                        $neededInRecipeUnit,
+                        $recipeQty * $quantityOrdered,
                         $recipeUnit,
                         $stockUnit,
                         $itemName,
                         $itemId
                     );
+
+                    if ($availableStock < $neededInStockUnit - 0.001) {
+                        $stockErrors[] = $itemName . ' (Need: ' . number_format($neededInStockUnit, 2) . ' ' . $stockUnit . ', Available: ' . number_format($availableStock, 2) . ' ' . $stockUnit . ')';
+                    }
 
                     if (!isset($ingredientsUsed[$itemId])) {
                         $ingredientsUsed[$itemId] = 0;
@@ -715,7 +546,13 @@ class CustomerAuthController extends Controller
                     'quantity' => $item['quantity'],
                     'unit_price' => $product->price,
                     'subtotal' => $subtotal,
+                    'product_image' => $product->image,
+                    'product_name' => $product->name,
                 ];
+            }
+
+            if (!empty($stockErrors)) {
+                throw new \Exception('Insufficient stock for: ' . implode(', ', $stockErrors));
             }
 
             // Check active voucher
@@ -751,7 +588,6 @@ class CustomerAuthController extends Controller
                         $pointsUsed = $selected['points'];
                         $discountLabel = $selected['label'];
                         $discountType = $selected['id'];
-                        
                         $customer->loyalty_points -= $pointsUsed;
                         $customer->save();
                     }
@@ -859,10 +695,7 @@ class CustomerAuthController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Order placement error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 400);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
     }
 
@@ -870,7 +703,6 @@ class CustomerAuthController extends Controller
     {
         $customer = Auth::guard('customer')->user();
         $orders = $customer->sales()->with(['items.product', 'branch'])->latest()->paginate(20);
-        
         return view('customer.orders', compact('orders'));
     }
 
@@ -880,7 +712,6 @@ class CustomerAuthController extends Controller
         $order = Sale::with(['items.product', 'branch'])
             ->where('customer_id', $customer->id)
             ->findOrFail($id);
-        
         return view('customer.order-details', compact('order'));
     }
 
@@ -902,7 +733,6 @@ class CustomerAuthController extends Controller
         ];
         
         $estimatedTime = $order->created_at->addMinutes(45);
-        
         return view('customer.track', compact('order', 'status', 'statuses', 'estimatedTime'));
     }
 
@@ -910,7 +740,6 @@ class CustomerAuthController extends Controller
     {
         $customer = Auth::guard('customer')->user();
         $order = Sale::where('customer_id', $customer->id)->findOrFail($id);
-        
         return response()->json([
             'success' => true,
             'status' => $order->delivery_status ?? 'pending',
@@ -926,11 +755,7 @@ class CustomerAuthController extends Controller
         $product = Product::with('recipes.item')->find($productId);
         
         if (!$product || $product->recipes->isEmpty()) {
-            return response()->json([
-                'available' => false,
-                'message' => 'Product not available',
-                'error' => null
-            ]);
+            return response()->json(['available' => false, 'message' => 'Product not available', 'error' => null]);
         }
 
         $available = true;
@@ -948,21 +773,28 @@ class CustomerAuthController extends Controller
             $needed = $recipe->quantity;
             $itemName = $recipe->item->name ?? 'Unknown';
             
-            $servingsPossible = $this->calculateServingsPossible($recipe, $stockQty);
+            $availableInRecipeUnit = UnitConverter::convert(
+                $stockQty,
+                $recipe->item->unit ?? 'g',
+                $recipe->unit,
+                $itemName,
+                $recipe->item_id
+            );
             
-            if ($servingsPossible < $maxServings) {
-                $maxServings = $servingsPossible;
-            }
+            $servingsPossible = $this->calculateServingsPossible($recipe, $availableInRecipeUnit);
+            
+            if ($servingsPossible < $maxServings) $maxServings = $servingsPossible;
             
             $stockDetails[] = [
                 'item' => $itemName,
-                'available' => $stockQty,
+                'available_stock' => $stockQty,
+                'available_in_recipe_unit' => $availableInRecipeUnit,
                 'needed' => $needed,
                 'servings_possible' => $servingsPossible,
-                'sufficient' => $stockQty >= $needed
+                'sufficient' => $availableInRecipeUnit >= $needed - 0.001
             ];
             
-            if ($stockQty < $needed) {
+            if ($availableInRecipeUnit < $needed - 0.001) {
                 $available = false;
                 $missingIngredients[] = $itemName;
             }
@@ -976,4 +808,70 @@ class CustomerAuthController extends Controller
             'error' => null
         ]);
     }
+
+    public function orderCount()
+    {
+        try {
+            $customer = Auth::guard('customer')->user();
+            if (!$customer) {
+                return response()->json(['count' => 0]);
+            }
+            
+            $count = Order::whereHas('sale', function($query) use ($customer) {
+                $query->where('customer_id', $customer->id)
+                      ->where('delivery_status', '!=', 'completed')
+                      ->where('delivery_status', '!=', 'cancelled');
+            })->count();
+            
+            return response()->json(['count' => $count]);
+        } catch (\Exception $e) {
+            return response()->json(['count' => 0]);
+        }
+    }
+    
+    public function cancelOrder($id)
+    {
+        try {
+            $customer = Auth::guard('customer')->user();
+            if (!$customer) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+            }
+            
+            $order = Sale::where('customer_id', $customer->id)->findOrFail($id);
+            
+            // Check if order can be cancelled (only pending or preparing)
+            if (!in_array($order->delivery_status, ['pending', 'preparing'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This order cannot be cancelled anymore.'
+                ], 400);
+            }
+            
+            // Update order status
+            $order->delivery_status = 'cancelled';
+            $order->order_status = 'cancelled';
+            $order->cancelled_at = now();
+            $order->cancelled_by = 'customer';
+            $order->save();
+            
+            // Update order items status
+            foreach ($order->orders as $item) {
+                $item->status = 'cancelled';
+                $item->save();
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Order cancelled successfully.'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Cancel order error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error cancelling order: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+    
 }

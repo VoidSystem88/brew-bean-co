@@ -68,18 +68,19 @@
 
                             <div class="col-md-6 mb-3">
                                 <label for="role" class="form-label fw-bold">Role *</label>
-                                <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required>
+                                <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required onchange="toggleBranchField()">
                                     <option value="">Select Role</option>
                                     <option value="admin" {{ old('role', $staff->role) == 'admin' ? 'selected' : '' }}>Admin</option>
                                     <option value="manager" {{ old('role', $staff->role) == 'manager' ? 'selected' : '' }}>Manager</option>
                                     <option value="staff" {{ old('role', $staff->role) == 'staff' ? 'selected' : '' }}>Staff</option>
+                                    <option value="delivery" {{ old('role', $staff->role) == 'delivery' ? 'selected' : '' }}>Delivery Rider</option>
                                 </select>
                                 @error('role')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6 mb-3" id="branchField">
                                 <label for="branch_id" class="form-label fw-bold">
                                     <i class="fas fa-store me-1"></i> Branch
                                 </label>
@@ -100,7 +101,10 @@
                                 @error('branch_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                                <small class="text-muted">Select the branch where this staff will be assigned.</small>
+                                <small class="text-muted" id="branchHelp">Select the branch where this staff will be assigned.</small>
+                                <small class="text-muted" id="branchHelpAdmin" style="display:none;color:#6F4E37;">
+                                    <i class="fas fa-info-circle"></i> Admin and Manager have access to ALL branches.
+                                </small>
                             </div>
                         </div>
 
@@ -119,3 +123,33 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    function toggleBranchField() {
+        const role = document.getElementById('role').value;
+        const branchField = document.getElementById('branchField');
+        const branchSelect = document.getElementById('branch_id');
+        const helpText = document.getElementById('branchHelp');
+        const helpAdmin = document.getElementById('branchHelpAdmin');
+        
+        if (role === 'admin' || role === 'manager') {
+            branchSelect.disabled = true;
+            branchSelect.value = '';
+            branchField.style.opacity = '0.6';
+            if (helpText) helpText.style.display = 'none';
+            if (helpAdmin) helpAdmin.style.display = 'block';
+        } else {
+            branchSelect.disabled = false;
+            branchField.style.opacity = '1';
+            if (helpText) helpText.style.display = 'block';
+            if (helpAdmin) helpAdmin.style.display = 'none';
+        }
+    }
+    
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleBranchField();
+    });
+</script>
+@endpush

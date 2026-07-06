@@ -541,13 +541,7 @@
 
                 <!-- OPERATIONS -->
                 @if($isStaff || $isAdmin || $isManager)
-                    <div class="nav-section">Operations</div>
-                    @if(!$isStaff)
-                        <a href="{{ route('staff.dashboard') }}" class="nav-link {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}">
-                            <i class="fas fa-clipboard-list"></i>
-                            <span>Staff Dashboard</span>
-                        </a>
-                    @endif
+                   
                     
                     @if($isStaff)
                         <a href="{{ route('pos.index') }}" class="nav-link {{ request()->routeIs('pos.*') ? 'active' : '' }}">
@@ -682,6 +676,25 @@
                 </div>
                 
                 <div class="right-section">
+                    <!-- Notification Bell -->
+                    <div style="position:relative;display:inline-block;margin-left:8px;">
+                        <div onclick="toggleNotif(event)" style="position:relative;display:inline-block;cursor:pointer;font-size:18px;color:#6F4E37;padding:4px 8px;transition:0.2s;">
+                            <i class="fas fa-bell"></i>
+                            <span id="notifCount" style="display:none;position:absolute;top:-4px;right:-4px;background:#dc3545;color:white;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;border:2px solid white;min-width:16px;text-align:center;line-height:12px;">0</span>
+                            <div id="notifDropdown" style="display:none;position:absolute;top:100%;right:0;width:350px;max-height:350px;overflow-y:auto;background:white;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);border:1px solid #e8e8e8;z-index:999;margin-top:4px;">
+                                <div style="padding:10px 14px;border-bottom:1px solid #eee;font-weight:600;font-size:13px;color:#333;display:flex;justify-content:space-between;align-items:center;background:#faf8f6;border-radius:12px 12px 0 0;">
+                                    <span>📦 Delivery Notifications</span>
+                                    <button onclick="markAllReadNotif(event)" style="font-size:11px;color:#6F4E37;cursor:pointer;background:none;border:none;font-weight:500;">Mark all read</button>
+                                </div>
+                                <div id="notifList">
+                                    <div style="padding:20px;text-align:center;color:#999;font-size:12px;">
+                                        <i class="fas fa-check-circle" style="font-size:28px;color:#ddd;display:block;margin-bottom:6px;"></i>
+                                        No notifications
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="connection-status" id="connectionStatus">
                         <span class="dot online" id="statusDot"></span>
                         <span class="status-text online" id="statusText">Online</span>
@@ -814,7 +827,7 @@
                             <div class="result-icon"><i class="fas fa-box"></i></div>
                             <div class="result-info">
                                 <div class="result-title">${item.name}</div>
-                                <div class="result-sub">₱${parseFloat(item.price).toFixed(2)}</div>
+                                <div class="result-sub">Ã¢â€šÂ±${parseFloat(item.price).toFixed(2)}</div>
                             </div>
                             <span class="result-badge product">Product</span>
                         </div>
@@ -848,7 +861,7 @@
                             <div class="result-icon"><i class="fas fa-receipt"></i></div>
                             <div class="result-info">
                                 <div class="result-title">Order #${item.id}</div>
-                                <div class="result-sub">₱${parseFloat(item.total).toFixed(2)}</div>
+                                <div class="result-sub">Ã¢â€šÂ±${parseFloat(item.total).toFixed(2)}</div>
                             </div>
                             <span class="result-badge order">Order</span>
                         </div>
@@ -954,5 +967,267 @@
         });
     </script>
     @stack('scripts')
+<script>
+    let notifs = [];
+    
+    function loadNotifs() {
+        fetch('/staff/notifications')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    notifs = data.notifications || [];
+                    renderNotifs();
+                    updateNotifBadge();
+                }
+            })
+            .catch(() => {});
+    }
+    
+    function renderNotifs() {
+        const list = document.getElementById('notifList');
+        if (!list) return;
+        
+        if (notifs.length === 0) {
+            list.innerHTML = `
+                <div style="padding:20px;text-align:center;color:#999;font-size:12px;">
+                    <i class="fas fa-check-circle" style="font-size:28px;color:#ddd;display:block;margin-bottom:6px;"></i>
+                    No notifications
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        notifs.forEach(notif => {
+            const isUnread = !notif.read;
+            const icon = notif.type === 'delivered' ? 'fa-check-circle' : 'fa-truck';
+            const bgColor = notif.type === 'delivered' ? '#d4edda' : '#cce5ff';
+            const color = notif.type === 'delivered' ? '#28a745' : '#0d6efd';
+            
+            html += `
+                <div onclick="markNotifRead('${notif.id}')" style="padding:10px 14px;border-bottom:1px solid #f5f5f5;transition:0.2s;cursor:pointer;display:flex;gap:10px;align-items:flex-start;${isUnread ? 'background:#f0f7ff;border-left:3px solid #0d6efd;' : ''}">
+                    <div style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;background:${bgColor};color:${color};">
+                        <i class="fas ${icon}"></i>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:500;font-size:12px;color:#333;">${notif.title}</div>
+                        <div style="font-size:11px;color:#999;margin-top:1px;">${notif.message}</div>
+                    </div>
+                    <div style="font-size:10px;color:#bbb;white-space:nowrap;flex-shrink:0;margin-top:2px;">${notif.time}</div>
+                </div>
+            `;
+        });
+        
+        list.innerHTML = html;
+    }
+    
+    function updateNotifBadge() {
+        const badge = document.getElementById('notifCount');
+        if (!badge) return;
+        
+        const unread = notifs.filter(n => !n.read).length;
+        if (unread > 0) {
+            badge.textContent = unread > 99 ? '99+' : unread;
+            badge.style.display = 'block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+    
+    function toggleNotif(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('notifDropdown');
+        if (dropdown) {
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            if (dropdown.style.display === 'block') {
+                loadNotifs();
+            }
+        }
+    }
+    
+    function markNotifRead(id) {
+        fetch('/staff/notifications/read/' + id, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const item = notifs.find(n => n.id === id);
+                if (item) item.read = true;
+                renderNotifs();
+                updateNotifBadge();
+            }
+        })
+        .catch(() => {});
+    }
+    
+    function markAllReadNotif(event) {
+        if (event) event.stopPropagation();
+        fetch('/staff/notifications/read-all', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                notifs.forEach(n => n.read = true);
+                renderNotifs();
+                updateNotifBadge();
+            }
+        })
+        .catch(() => {});
+    }
+    
+    document.addEventListener('click', function(e) {
+        const bell = document.querySelector('[onclick*="toggleNotif"]');
+        if (bell && !bell.contains(e.target)) {
+            const dropdown = document.getElementById('notifDropdown');
+            if (dropdown) dropdown.style.display = 'none';
+        }
+    });
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        loadNotifs();
+        setInterval(loadNotifs, 30000);
+    });
+</script>
+<script>
+    let notifs = [];
+    
+    function loadNotifs() {
+        fetch('/staff/notifications')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    notifs = data.notifications || [];
+                    renderNotifs();
+                    updateNotifBadge();
+                }
+            })
+            .catch(() => {});
+    }
+    
+    function renderNotifs() {
+        const list = document.getElementById('notifList');
+        if (!list) return;
+        
+        if (notifs.length === 0) {
+            list.innerHTML = `
+                <div style="padding:20px;text-align:center;color:#999;font-size:12px;">
+                    <i class="fas fa-check-circle" style="font-size:28px;color:#ddd;display:block;margin-bottom:6px;"></i>
+                    No notifications
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        notifs.forEach(notif => {
+            const isUnread = !notif.read;
+            const icon = notif.type === 'delivered' ? 'fa-check-circle' : 'fa-truck';
+            const bgColor = notif.type === 'delivered' ? '#d4edda' : '#cce5ff';
+            const color = notif.type === 'delivered' ? '#28a745' : '#0d6efd';
+            
+            html += `
+                <div onclick="markNotifRead('${notif.id}')" style="padding:10px 14px;border-bottom:1px solid #f5f5f5;transition:0.2s;cursor:pointer;display:flex;gap:10px;align-items:flex-start;${isUnread ? 'background:#f0f7ff;border-left:3px solid #0d6efd;' : ''}">
+                    <div style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;background:${bgColor};color:${color};">
+                        <i class="fas ${icon}"></i>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:500;font-size:12px;color:#333;">${notif.title}</div>
+                        <div style="font-size:11px;color:#999;margin-top:1px;">${notif.message}</div>
+                    </div>
+                    <div style="font-size:10px;color:#bbb;white-space:nowrap;flex-shrink:0;margin-top:2px;">${notif.time}</div>
+                </div>
+            `;
+        });
+        
+        list.innerHTML = html;
+    }
+    
+    function updateNotifBadge() {
+        const badge = document.getElementById('notifCount');
+        if (!badge) return;
+        
+        const unread = notifs.filter(n => !n.read).length;
+        if (unread > 0) {
+            badge.textContent = unread > 99 ? '99+' : unread;
+            badge.style.display = 'block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+    
+    function toggleNotif(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('notifDropdown');
+        if (dropdown) {
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            if (dropdown.style.display === 'block') {
+                loadNotifs();
+            }
+        }
+    }
+    
+    function markNotifRead(id) {
+        fetch('/staff/notifications/read/' + id, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const item = notifs.find(n => n.id === id);
+                if (item) item.read = true;
+                renderNotifs();
+                updateNotifBadge();
+            }
+        })
+        .catch(() => {});
+    }
+    
+    function markAllReadNotif(event) {
+        if (event) event.stopPropagation();
+        fetch('/staff/notifications/read-all', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                notifs.forEach(n => n.read = true);
+                renderNotifs();
+                updateNotifBadge();
+            }
+        })
+        .catch(() => {});
+    }
+    
+    document.addEventListener('click', function(e) {
+        const bell = document.querySelector('[onclick*="toggleNotif"]');
+        if (bell && !bell.contains(e.target)) {
+            const dropdown = document.getElementById('notifDropdown');
+            if (dropdown) dropdown.style.display = 'none';
+        }
+    });
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        loadNotifs();
+        setInterval(loadNotifs, 30000);
+    });
+</script>
 </body>
 </html>

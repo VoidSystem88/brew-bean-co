@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('page-title', 'Order Details')
 
@@ -44,7 +44,7 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Product</th>
+                                <th style="width:50px;">Image</th><th>Product</th>
                                 <th class="text-center">Quantity</th>
                                 <th class="text-end">Unit Price</th>
                                 <th class="text-end">Subtotal</th>
@@ -53,17 +53,26 @@
                         <tbody>
                             @foreach($order->items as $item)
                                 <tr>
-                                    <td>{{ $item->product->name }}</td>
+                                                                    <td>
+                                    @if($item->product->image && file_exists(storage_path('app/public/products/' . $item->product->image)))
+                                        <img src="{{ asset('storage/products/' . $item->product->image) }}" alt="{{ $item->product->name }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">
+                                    @else
+                                        <div style="width:40px;height:40px;background:#f5f0eb;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#ccc;">
+                                            <i class="fas fa-coffee"></i>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td>{{ $item->product->name }}</td>
                                     <td class="text-center">{{ $item->quantity }}</td>
-                                    <td class="text-end">₱{{ number_format($item->unit_price, 2) }}</td>
-                                    <td class="text-end">₱{{ number_format($item->subtotal, 2) }}</td>
+                                    <td class="text-end">â‚±{{ number_format($item->unit_price, 2) }}</td>
+                                    <td class="text-end">â‚±{{ number_format($item->subtotal, 2) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
                         <tfoot>
                             <tr>
                                 <td colspan="3" class="text-end fw-bold">Total:</td>
-                                <td class="text-end fw-bold text-success">₱{{ number_format($order->total_amount, 2) }}</td>
+                                <td class="text-end fw-bold text-success">â‚±{{ number_format($order->total_amount, 2) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -82,7 +91,7 @@
                 <div class="mb-2">
                     <span class="text-muted">Branch:</span>
                     <br>
-                    <strong>{{ str_replace('☕ Brew & Bean Co. - ', '', $order->branch->name ?? 'Unknown') }}</strong>
+                    <strong>{{ str_replace('â˜• Brew & Bean Co. - ', '', $order->branch->name ?? 'Unknown') }}</strong>
                 </div>
                 <div class="mb-2">
                     <span class="text-muted">Status:</span>
@@ -112,7 +121,7 @@
                 <div class="mb-2">
                     <span class="text-muted">Total Amount:</span>
                     <br>
-                    <strong class="text-success" style="font-size: 20px;">₱{{ number_format($order->total_amount, 2) }}</strong>
+                    <strong class="text-success" style="font-size: 20px;">â‚±{{ number_format($order->total_amount, 2) }}</strong>
                 </div>
                 <div class="mb-2">
                     <span class="text-muted">Payment Method:</span>
