@@ -17,13 +17,29 @@ class DeliveryPersonController extends Controller
         $thisWeek = now()->startOfWeek()->format('Y-m-d');
         $thisMonth = now()->startOfMonth()->format('Y-m-d');
         
-        // Get assigned orders
+        // Get assigned orders (not completed or failed)
         $assignedOrders = Sale::with(['customer', 'branch'])
             ->where('delivery_person_id', $user->id)
             ->where('delivery_status', '!=', 'completed')
             ->where('delivery_status', '!=', 'failed')
             ->orderBy('created_at', 'asc')
             ->get();
+        
+        // ===== NEW: Get new assignments (recently assigned, status = 'assigned') =====
+        $newAssignments = Sale::with(['customer', 'branch'])
+            ->where('delivery_person_id', $user->id)
+            ->where('delivery_status', 'assigned')
+            ->where('delivery_assigned_at', '>=', now()->subHours(24))
+            ->orderBy('delivery_assigned_at', 'desc')
+            ->get()
+            ->map(function($sale) {
+                return (object) [
+                    'sale_id' => $sale->id,
+                    'customer_name' => $sale->customer->name ?? 'Unknown',
+                    'delivery_address' => $sale->delivery_address,
+                    'created_at' => $sale->delivery_assigned_at ?? $sale->created_at,
+                ];
+            });
         
         // Completed deliveries today
         $completedToday = Sale::where('delivery_person_id', $user->id)
@@ -73,6 +89,7 @@ class DeliveryPersonController extends Controller
         
         return view('delivery.dashboard', compact(
             'assignedOrders',
+            'newAssignments',  // ← Make sure this is passed
             'completedTodayCount',
             'completedTodayEarnings',
             'completedWeekCount',

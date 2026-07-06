@@ -254,3 +254,16 @@ Route::get('/delivery-person/order/{saleId}', [DeliveryPersonController::class, 
 
 // Delivery Riders
 Route::get('/delivery/riders', [DeliveryController::class, 'getRiders'])->name('delivery.riders')->middleware('auth');
+// In routes/web.php
+Route::post('/customer/refund/request', [CustomerAuthController::class, 'requestRefund'])->name('customer.refund.request');
+Route::get('/admin/refunds', [App\Http\Controllers\Admin\RefundController::class, 'index'])->name('admin.refunds')->middleware('role:admin');
+Route::post('/admin/refunds/{id}/approve', [App\Http\Controllers\Admin\RefundController::class, 'approve'])->name('admin.refunds.approve')->middleware('role:admin');
+Route::post('/admin/refunds/{id}/deny', [App\Http\Controllers\Admin\RefundController::class, 'deny'])->name('admin.refunds.deny')->middleware('role:admin');
+// Refund Management - Admin Only
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/refunds', [App\Http\Controllers\Admin\RefundController::class, 'index'])->name('refunds');
+    Route::get('/refunds/{id}', [App\Http\Controllers\Admin\RefundController::class, 'show'])->name('refunds.show');
+    Route::post('/refunds/{id}/approve', [App\Http\Controllers\Admin\RefundController::class, 'approve'])->name('refunds.approve');
+    Route::post('/refunds/{id}/deny', [App\Http\Controllers\Admin\RefundController::class, 'deny'])->name('refunds.deny');
+    Route::post('/refunds/{id}/complete', [App\Http\Controllers\Admin\RefundController::class, 'complete'])->name('refunds.complete');
+});

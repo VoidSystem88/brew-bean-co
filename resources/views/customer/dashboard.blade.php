@@ -35,48 +35,6 @@
         padding: 5px 12px;
         border: 1px solid #ddd;
         border-radius: 6px;
-        font
-full fix mo yung discount method gawin mong dropdown tapus lalabas ang mga avail voucher kung may mga malalaking voucher like need 200 min spend gawin mong disable kung below ang pag bili nila
-Narito ang FULL FIX para sa customer dashboard na may dropdown voucher selection at disabled vouchers kung hindi meet ang minimum spend:
-
-blade
-@extends('layouts.customer')
-
-@section('page-title', 'Menu')
-
-@section('content')
-<style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #f8f6f4; }
-    
-    .stat-card {
-        background: white;
-        border-radius: 10px;
-        padding: 14px 16px;
-        border: 1px solid #eee;
-        text-align: center;
-        transition: 0.2s;
-    }
-    .stat-card:hover { border-color: #6F4E37; }
-    .stat-card .stat-number { font-size: 22px; font-weight: 700; color: #6F4E37; }
-    .stat-card .stat-label { color: #999; font-size: 12px; margin-top: 2px; }
-    
-    .branch-selector {
-        background: white;
-        border-radius: 10px;
-        padding: 10px 16px;
-        border: 1px solid #eee;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-    .branch-selector label { font-size: 13px; font-weight: 600; color: #333; margin: 0; }
-    .branch-selector select {
-        padding: 5px 12px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
         font-size: 13px;
         background: white;
         flex: 1;
@@ -421,7 +379,7 @@ blade
         transform: none;
     }
     
-    /* ===== DELIVERY CHECKBOX ===== */
+    /* ===== DELIVERY TOGGLE ===== */
     .delivery-toggle {
         display: flex;
         align-items: center;
@@ -639,6 +597,86 @@ blade
         to { transform: translateY(0); opacity: 1; }
     }
     
+    /* ===== FLOATING CART BUBBLE ===== */
+    .floating-cart-bubble {
+        position: fixed;
+        bottom: 100px;
+        right: 20px;
+        z-index: 9998;
+        background: #6F4E37;
+        color: white;
+        border-radius: 50px;
+        padding: 12px 20px;
+        display: none;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 8px 32px rgba(111, 78, 55, 0.4);
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border: none;
+        font-family: inherit;
+        text-decoration: none;
+        min-width: 60px;
+        justify-content: center;
+    }
+    .floating-cart-bubble.show {
+        display: flex;
+        animation: bubbleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .floating-cart-bubble.hide {
+        animation: bubbleOut 0.4s ease forwards;
+    }
+    .floating-cart-bubble:hover {
+        transform: translateY(-4px) scale(1.04);
+        box-shadow: 0 12px 40px rgba(111, 78, 55, 0.5);
+        background: #5a3d2b;
+        color: white;
+    }
+    .floating-cart-bubble:active {
+        transform: scale(0.95);
+    }
+    .floating-cart-bubble .bubble-icon {
+        font-size: 20px;
+    }
+    .floating-cart-bubble .bubble-badge {
+        background: #ffd700;
+        color: #333;
+        border-radius: 50%;
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .floating-cart-bubble .bubble-total {
+        font-size: 15px;
+        font-weight: 700;
+        color: #ffd700;
+    }
+    
+    /* ===== SCROLL BEHAVIOR - Fade on scroll ===== */
+    .floating-cart-bubble.scrolled {
+        opacity: 0.2;
+        pointer-events: none;
+        transform: scale(0.9);
+    }
+    .floating-cart-bubble.scrolled:hover {
+        opacity: 0.4;
+        transform: scale(0.92);
+    }
+    
+    @keyframes bubbleIn {
+        0% { opacity: 0; transform: scale(0.5) translateY(30px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes bubbleOut {
+        0% { opacity: 1; transform: scale(1) translateY(0); }
+        100% { opacity: 0; transform: scale(0.5) translateY(30px); }
+    }
+    
     @media (max-width: 576px) {
         .slideshow-container .slide {
             flex-direction: column; text-align: center; padding: 15px;
@@ -670,9 +708,52 @@ blade
         .delivery-toggle .custom-checkbox .checkmark::after { width: 14px; height: 14px; }
         .delivery-toggle .custom-checkbox input:checked + .checkmark::after { transform: translateX(18px); }
         .voucher-dropdown select { font-size: 12px; padding: 6px 10px; }
+        .floating-cart-bubble {
+            bottom: 80px;
+            right: 12px;
+            padding: 10px 16px;
+            font-size: 12px;
+        }
+        .floating-cart-bubble .bubble-icon { font-size: 16px; }
+        .floating-cart-bubble .bubble-badge { width: 22px; height: 22px; font-size: 10px; }
+        .floating-cart-bubble .bubble-total { font-size: 13px; }
+    }
+    
+    @media (max-width: 400px) {
+        .floating-cart-bubble { right: 8px; padding: 8px 12px; }
+        .floating-cart-bubble .bubble-badge { width: 18px; height: 18px; font-size: 9px; }
+        .floating-cart-bubble .bubble-total { font-size: 11px; }
+        .floating-cart-bubble .bubble-icon { font-size: 14px; }
     }
 </style>
-
+<!-- ===== CANCELLATION NOTICE ===== -->
+@if(session('cancellation_notice'))
+    @php $notice = session('cancellation_notice'); @endphp
+    <div class="cancellation-notice" style="background:#f8d7da;border:1px solid #f5c6cb;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(220,53,69,0.1);">
+        <div style="font-size:28px;color:#dc3545;flex-shrink:0;">
+            <i class="fas fa-times-circle"></i>
+        </div>
+        <div style="flex:1;">
+            <div style="font-weight:700;color:#721c24;font-size:15px;">
+                Order #{{ $notice['order_id'] }} Cancelled
+            </div>
+            <div style="color:#721c24;font-size:13px;">
+                {{ $notice['message'] }}
+            </div>
+            <div style="color:#721c24;font-size:12px;margin-top:2px;">
+                <i class="fas fa-info-circle"></i> Your payment will be refunded within 3-5 business days.
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+            <a href="{{ route('customer.orders') }}" style="background:#dc3545;color:white;padding:6px 16px;border-radius:20px;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap;transition:0.2s;">
+                <i class="fas fa-list"></i> View Orders
+            </a>
+            <button onclick="this.closest('.cancellation-notice').style.display='none'" style="background:transparent;border:none;color:#721c24;font-size:20px;cursor:pointer;padding:0 4px;">
+                ✕
+            </button>
+        </div>
+    </div>
+@endif
 <!-- Location Banner -->
 <div class="location-banner">
     <div class="location-text">
@@ -700,33 +781,7 @@ blade
     </span>
 </div>
 
-<!-- Stats -->
-<div class="row g-2 mb-3">
-    <div class="col-3">
-        <div class="stat-card">
-            <div class="stat-number">{{ $totalOrders }}</div>
-            <div class="stat-label">Orders</div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="stat-card">
-            <div class="stat-number">₱{{ number_format($totalSpent, 0) }}</div>
-            <div class="stat-label">Spent</div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="stat-card">
-            <div class="stat-number">{{ $customer->loyalty_points ?? 0 }}</div>
-            <div class="stat-label">Points</div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="stat-card">
-            <div class="stat-number">{{ $discountRate ?? 0 }}%</div>
-            <div class="stat-label">Discount</div>
-        </div>
-    </div>
-</div>
+
 
 <!-- Filters -->
 <div class="filter-group">
@@ -870,6 +925,13 @@ blade
 </div>
 @endif
 
+<!-- ===== FLOATING CART BUBBLE ===== -->
+<button class="floating-cart-bubble" id="floatingCartBubble" onclick="openCheckout()">
+    <span class="bubble-icon"><i class="fas fa-shopping-cart"></i></span>
+    <span class="bubble-badge" id="bubbleCount">0</span>
+    <span class="bubble-total" id="bubbleTotal">₱0.00</span>
+</button>
+
 <!-- ===== CHECKOUT MODAL ===== -->
 <div class="checkout-modal" id="checkoutModal">
     <div class="modal-content">
@@ -1012,6 +1074,65 @@ blade
     let availableDiscounts = [];
     let selectedDiscount = null;
     let activeVoucher = null;
+    let lastScrollY = 0;
+    let bubbleVisible = false;
+
+    // ============================================================
+    // FLOATING BUBBLE FUNCTIONS
+    // ============================================================
+    function updateBubble() {
+        const bubble = document.getElementById('floatingCartBubble');
+        const countEl = document.getElementById('bubbleCount');
+        const totalEl = document.getElementById('bubbleTotal');
+        
+        if (!bubble) return;
+        
+        if (cart && cart.length > 0) {
+            let total = 0;
+            let count = 0;
+            cart.forEach(item => {
+                total += (item.price || 0) * (item.quantity || 0);
+                count += (item.quantity || 0);
+            });
+            
+            if (countEl) countEl.textContent = count;
+            if (totalEl) totalEl.textContent = '₱' + total.toFixed(2);
+            
+            // Show with animation
+            if (!bubbleVisible) {
+                bubble.classList.remove('hide');
+                bubble.classList.add('show');
+                bubbleVisible = true;
+            }
+        } else {
+            // Hide with animation
+            if (bubbleVisible) {
+                bubble.classList.remove('show');
+                bubble.classList.add('hide');
+                bubbleVisible = false;
+                setTimeout(() => {
+                    bubble.classList.remove('hide');
+                }, 400);
+            }
+        }
+    }
+
+    // ===== SCROLL BEHAVIOR - Fade bubble when scrolling down =====
+    function handleBubbleScroll() {
+        const bubble = document.getElementById('floatingCartBubble');
+        if (!bubble) return;
+        
+        const currentScrollY = window.scrollY || window.pageYOffset;
+        const scrollThreshold = 150; // pixels before fading
+        
+        if (currentScrollY > scrollThreshold) {
+            bubble.classList.add('scrolled');
+        } else {
+            bubble.classList.remove('scrolled');
+        }
+        
+        lastScrollY = currentScrollY;
+    }
 
     // ============================================================
     // DISCOUNT FUNCTIONS
@@ -1045,7 +1166,6 @@ blade
         
         if (!select) return;
         
-        // Clear existing options except the first
         select.innerHTML = '<option value="">No voucher</option>';
         
         if (!availableDiscounts || availableDiscounts.length === 0) {
@@ -1097,14 +1217,12 @@ blade
             select.appendChild(option);
         });
         
-        // Update info
         if (hasAvailable) {
             infoDiv.innerHTML = '<span style="color:#28a745;">✅ Select a voucher to apply</span>';
         } else {
             infoDiv.innerHTML = '<span style="color:#999;">No vouchers available for this order</span>';
         }
         
-        // Auto-select active voucher if available
         setTimeout(function() {
             const activeVoucherOption = Array.from(select.options).find(opt => {
                 const discount = availableDiscounts.find(d => d.id === opt.value);
@@ -1123,7 +1241,6 @@ blade
         
         if (!voucherId) {
             selectedDiscount = null;
-            document.getElementById('selectedDiscountDisplay').style.display = 'none';
             updateModalPricing();
             return;
         }
@@ -1131,14 +1248,12 @@ blade
         const discount = availableDiscounts.find(d => d.id === voucherId);
         if (!discount) return;
         
-        // Check if disabled
         if (discount.locked) {
             alert('This voucher is locked.');
             select.value = '';
             return;
         }
         
-        // Check min purchase
         const subtotal = calculateSubtotal();
         if (discount.min_purchase > 0 && subtotal < discount.min_purchase) {
             alert('Minimum purchase of ₱' + discount.min_purchase + ' required.');
@@ -1146,7 +1261,6 @@ blade
             return;
         }
         
-        // Check points
         if (discount.points > 0 && discount.points > {{ $customer->loyalty_points ?? 0 }}) {
             alert('You need ' + discount.points + ' points.');
             select.value = '';
@@ -1154,11 +1268,6 @@ blade
         }
         
         selectedDiscount = discount;
-        document.getElementById('selectedDiscountDisplay').style.display = 'block';
-        document.getElementById('selectedDiscountName').textContent = discount.label;
-        document.getElementById('selectedDiscountValue').textContent = '-₱' + discount.value;
-        document.getElementById('selectedDiscountPoints').textContent = discount.points + ' pts';
-        
         updateModalPricing();
     }
 
@@ -1190,6 +1299,13 @@ blade
         updateCart();
         updateBadge(productId);
         updateBubble();
+        
+        // Animate the product card
+        const card = document.querySelector(`.product-item[data-product-id="${productId}"] .product-card`);
+        if (card) {
+            card.style.transform = 'scale(0.95)';
+            setTimeout(() => { card.style.transform = ''; }, 200);
+        }
     }
 
     function removeFromCart(id) {
@@ -1229,7 +1345,6 @@ blade
     function updateCart() {
         const cartItems = document.getElementById('cartItems');
         const cartTotalEl = document.getElementById('cartTotal');
-        const itemCountDisplay = document.getElementById('itemCountDisplay');
         
         if (!cartItems) return;
         
@@ -1241,19 +1356,15 @@ blade
                 </p>
             `;
             if (cartTotalEl) cartTotalEl.textContent = '₱0.00';
-            if (itemCountDisplay) itemCountDisplay.textContent = '0';
-            updateFloatingButton();
             return;
         }
 
         let html = '';
         let total = 0;
-        let count = 0;
 
         cart.forEach(item => {
             const subtotal = item.price * item.quantity;
             total += subtotal;
-            count += item.quantity;
             html += `
                 <div class="cart-item">
                     <div>
@@ -1274,79 +1385,6 @@ blade
 
         cartItems.innerHTML = html;
         if (cartTotalEl) cartTotalEl.textContent = '₱' + total.toFixed(2);
-        if (itemCountDisplay) itemCountDisplay.textContent = count;
-        updateFloatingButton();
-    }
-
-    // ============================================================
-    // FLOATING BUTTON
-    // ============================================================
-    function updateFloatingButton() {
-        const btn = document.getElementById('floatingCheckout');
-        const countEl = document.getElementById('floatingItemCount');
-        const totalEl = document.getElementById('floatingTotal');
-        
-        if (!btn) return;
-        
-        let total = 0;
-        let count = 0;
-        if (cart && cart.length > 0) {
-            cart.forEach(item => {
-                total += (item.price || 0) * (item.quantity || 0);
-                count += (item.quantity || 0);
-            });
-        }
-        
-        if (count > 0) {
-            btn.style.display = 'flex';
-            if (countEl) countEl.textContent = count;
-            if (totalEl) totalEl.textContent = '₱' + total.toFixed(2);
-        } else {
-            btn.style.display = 'none';
-        }
-    }
-
-    // ============================================================
-    // CHECKOUT BUBBLE
-    // ============================================================
-    function updateBubble() {
-        const bubble = document.getElementById('checkoutBubble');
-        const countEl = document.getElementById('bubbleCount');
-        const totalEl = document.getElementById('bubbleTotal');
-        
-        if (!bubble) return;
-        
-        if (cart && cart.length > 0) {
-            let total = 0;
-            let count = 0;
-            cart.forEach(item => {
-                total += (item.price || 0) * (item.quantity || 0);
-                count += (item.quantity || 0);
-            });
-            
-            if (countEl) countEl.textContent = count;
-            if (totalEl) totalEl.textContent = '₱' + total.toFixed(2);
-            bubble.classList.add('show');
-            bubble.classList.remove('hide');
-        } else {
-            bubble.classList.remove('show');
-            bubble.classList.add('hide');
-            setTimeout(() => {
-                bubble.classList.remove('hide');
-            }, 300);
-        }
-    }
-
-    function openCheckout() {
-        if (cart.length === 0) {
-            const bubble = document.getElementById('checkoutBubble');
-            bubble.style.background = '#dc3545';
-            setTimeout(() => {
-                bubble.style.background = '';
-            }, 500);
-            return;
-        }
-        openCheckoutModal();
     }
 
     // ============================================================
@@ -1354,7 +1392,11 @@ blade
     // ============================================================
     function openCheckoutModal() {
         if (cart.length === 0) {
-            alert('Your cart is empty!');
+            const bubble = document.getElementById('floatingCartBubble');
+            if (bubble) {
+                bubble.style.background = '#dc3545';
+                setTimeout(() => { bubble.style.background = ''; }, 500);
+            }
             return;
         }
         document.getElementById('checkoutModal').classList.add('show');
@@ -1422,7 +1464,6 @@ blade
 
         document.getElementById('modalSubtotal').textContent = '₱' + subtotal.toFixed(2);
         
-        // Update discount row
         const discountRow = document.getElementById('modalDiscountRow');
         const discountLabel = document.getElementById('modalDiscountLabel');
         if (discountAmount > 0 && selectedDiscount) {
@@ -1433,7 +1474,6 @@ blade
             discountRow.style.display = 'none';
         }
 
-        // Update points used
         const pointsRow = document.getElementById('modalPointsUsedRow');
         if (selectedDiscount && selectedDiscount.points > 0) {
             pointsRow.style.display = 'flex';
@@ -1442,7 +1482,6 @@ blade
             pointsRow.style.display = 'none';
         }
 
-        // Update delivery fee
         const deliveryRow = document.getElementById('modalDeliveryRow');
         if (deliveryFee > 0) {
             deliveryRow.style.display = 'flex';
@@ -1455,9 +1494,18 @@ blade
 
         document.getElementById('modalTotal').textContent = '₱' + total.toFixed(2);
         document.getElementById('modalPointsEarn').textContent = pointsEarned;
-        
-        // Update points display
-        document.getElementById('modalPointsDisplay').textContent = '{{ $customer->loyalty_points ?? 0 }}';
+    }
+
+    function openCheckout() {
+        if (cart.length === 0) {
+            const bubble = document.getElementById('floatingCartBubble');
+            if (bubble) {
+                bubble.style.background = '#dc3545';
+                setTimeout(() => { bubble.style.background = ''; }, 500);
+            }
+            return;
+        }
+        openCheckoutModal();
     }
 
     // ============================================================
@@ -1702,6 +1750,9 @@ blade
         updateAvailableCount();
         updateBubble();
         
+        // Setup scroll listener for bubble
+        window.addEventListener('scroll', handleBubbleScroll, { passive: true });
+        
         // Close modal on outside click
         document.getElementById('checkoutModal')?.addEventListener('click', function(e) {
             if (e.target === this) closeCheckoutModal();
@@ -1721,4 +1772,4 @@ blade
     });
 </script>
 @endpush
-@endsection
+@endsection 

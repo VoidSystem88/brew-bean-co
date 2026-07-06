@@ -143,7 +143,7 @@ class CustomerAuthController extends Controller
         return redirect()->route('customer.loyalty')->with('error', 'No active voucher.');
     }
 
-    // ============= EXISTING METHODS =============
+    // ============= AUTHENTICATION METHODS =============
     public function showLoginForm()
     {
         return view('customer.auth.login');
@@ -195,6 +195,7 @@ class CustomerAuthController extends Controller
                 'email' => $request->email,
                 'phone' => $request->phone,
                 'address' => $request->address,
+                'birthday' => $request->birthday ?? null,
                 'password' => Hash::make($request->password),
                 'customer_code' => 'CUS-' . strtoupper(uniqid()),
                 'loyalty_points' => 0,
@@ -214,6 +215,7 @@ class CustomerAuthController extends Controller
         return redirect()->route('customer.login')->with('success', 'Logged out successfully.');
     }
 
+    // ============= DASHBOARD & PRODUCT METHODS =============
     public function dashboard(Request $request)
     {
         $customer = Auth::guard('customer')->user();
@@ -352,6 +354,7 @@ class CustomerAuthController extends Controller
         return redirect()->route('customer.dashboard')->with('success', 'Switched to selected branch');
     }
 
+    // ============= PROFILE METHODS =============
     public function profile()
     {
         $customer = Auth::guard('customer')->user();
@@ -367,6 +370,7 @@ class CustomerAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
+            'birthday' => 'nullable|date',
             'address' => 'nullable|string|max:500',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
@@ -379,6 +383,7 @@ class CustomerAuthController extends Controller
         try {
             $customer->name = $request->name;
             $customer->phone = $request->phone;
+            $customer->birthday = $request->birthday;
             $customer->address = $request->address;
             $customer->latitude = $request->latitude;
             $customer->longitude = $request->longitude;
@@ -417,6 +422,7 @@ class CustomerAuthController extends Controller
         }
     }
 
+    // ============= BRANCH METHODS =============
     public function getBranchesNearby(Request $request)
     {
         $lat = $request->lat;
@@ -463,6 +469,7 @@ class CustomerAuthController extends Controller
         return $earthRadius * $c;
     }
 
+    // ============= ORDER METHODS =============
     public function placeOrder(Request $request)
     {
         try {
@@ -716,25 +723,29 @@ class CustomerAuthController extends Controller
     }
 
     public function trackOrder($id)
-    {
-        $customer = Auth::guard('customer')->user();
-        $order = Sale::with(['items.product', 'branch', 'orders'])
-            ->where('customer_id', $customer->id)
-            ->findOrFail($id);
-        
-        $status = $order->delivery_status ?? 'pending';
-        $statuses = [
-            'pending' => ['label' => 'Order Placed', 'icon' => 'fa-clipboard-check', 'color' => '#ffc107'],
-            'preparing' => ['label' => 'Preparing', 'icon' => 'fa-utensils', 'color' => '#17a2b8'],
-            'ready' => ['label' => 'Ready for Pickup', 'icon' => 'fa-box', 'color' => '#fd7e14'],
-            'out_for_delivery' => ['label' => 'Out for Delivery', 'icon' => 'fa-truck', 'color' => '#6F4E37'],
-            'completed' => ['label' => 'Delivered', 'icon' => 'fa-check-circle', 'color' => '#28a745'],
-            'cancelled' => ['label' => 'Cancelled', 'icon' => 'fa-times-circle', 'color' => '#dc3545'],
-        ];
-        
-        $estimatedTime = $order->created_at->addMinutes(45);
-        return view('customer.track', compact('order', 'status', 'statuses', 'estimatedTime'));
-    }
+{
+    $customer = Auth::guard('customer')->user();
+    $order = Sale::with(['items.product', 'branch', 'orders'])
+        ->where('customer_id', $customer->id)
+        ->findOrFail($id);
+    
+    $status = $order->delivery_status ?? 'pending';
+    
+    // Fix: Map 'completed' to 'completed' status
+    // If status is 'completed', it should show as 'Delivered'
+    $statuses = [
+        'pending' => ['label' => 'Order Placed', 'icon' => 'fa-clipboard-check', 'color' => '#ffc107'],
+        'preparing' => ['label' => 'Preparing', 'icon' => 'fa-utensils', 'color' => '#17a2b8'],
+        'ready' => ['label' => 'Ready for Pickup', 'icon' => 'fa-box', 'color' => '#fd7e14'],
+        'out_for_delivery' => ['label' => 'Out for Delivery', 'icon' => 'fa-truck', 'color' => '#6F4E37'],
+        'completed' => ['label' => 'Delivered ✅', 'icon' => 'fa-check-circle', 'color' => '#28a745'],
+        'cancelled' => ['label' => 'Cancelled', 'icon' => 'fa-times-circle', 'color' => '#dc3545'],
+        'failed' => ['label' => 'Delivery Failed', 'icon' => 'fa-exclamation-triangle', 'color' => '#dc3545'],
+    ];
+    
+    $estimatedTime = $order->created_at->addMinutes(45);
+    return view('customer.track', compact('order', 'status', 'statuses', 'estimatedTime'));
+}
 
     public function getTrackingStatus($id)
     {
@@ -828,7 +839,106 @@ class CustomerAuthController extends Controller
             return response()->json(['count' => 0]);
         }
     }
-    
+
+    // ============= REFUND REQUEST METHOD =============
+    public function requestRefund(Request $request)
+    {
+        try {
+            \Log::info('Refund request received', [
+                'order_id' => $request->order_id,
+                'customer_id' => Auth::guard('customer')->id(),
+                'amount' => $request->amount
+            ]);
+
+            $request->validate([
+                'order_id' => 'required|exists:sales,id',
+                'reason' => 'required|string|max:255',
+                'description' => 'nullable|string|max:500',
+                'amount' => 'required|numeric|min:0.01',
+            ]);
+
+            $customer = Auth::guard('customer')->user();
+            
+            if (!$customer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please login to request a refund.'
+                ], 401);
+            }
+
+            $order = Sale::where('customer_id', $customer->id)
+                ->where('id', $request->order_id)
+                ->first();
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found.'
+                ], 404);
+            }
+
+            // Check if order is completed
+            if ($order->delivery_status !== 'completed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only completed orders can be refunded.'
+                ], 400);
+            }
+
+            // Check if refund already requested
+            if ($order->refund_requested) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A refund request has already been submitted for this order.'
+                ], 400);
+            }
+
+            // Check if amount is valid
+            if ($request->amount > $order->total_amount) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Refund amount cannot exceed the order total.'
+                ], 400);
+            }
+
+            // Save refund request
+            $order->refund_requested = true;
+            $order->refund_status = 'pending';
+            $order->refund_reason = $request->reason;
+            $order->refund_description = $request->description ?? 'No additional details provided.';
+            $order->refund_amount = $request->amount;
+            $order->refund_requested_at = now();
+            $order->save();
+
+            \Log::info('Refund request saved', [
+                'order_id' => $order->id,
+                'customer_id' => $customer->id,
+                'amount' => $request->amount
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Refund request submitted successfully.',
+                'order_id' => $order->id,
+                'refund_status' => 'pending'
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Refund request error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ============= CANCEL ORDER METHOD =============
     public function cancelOrder($id)
     {
         try {
@@ -873,5 +983,4 @@ class CustomerAuthController extends Controller
             ], 400);
         }
     }
-    
 }

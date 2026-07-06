@@ -419,82 +419,521 @@
         color: white;
     }
     
-    .notification-toast {
+    /* ============================================================
+       CONFIRMATION MODAL
+       ============================================================ */
+    .confirm-modal-overlay {
+        display: none;
         position: fixed;
-        bottom: 20px;
-        right: 20px;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(8px);
+        z-index: 99998;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        animation: overlayFade 0.3s ease;
+    }
+    
+    .confirm-modal-overlay.show {
+        display: flex;
+    }
+    
+    @keyframes overlayFade {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .confirm-modal {
+        background: white;
+        border-radius: 24px;
+        max-width: 420px;
+        width: 100%;
+        padding: 32px 28px 28px;
+        text-align: center;
+        animation: confirmPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.35);
+    }
+    
+    @keyframes confirmPop {
+        0% {
+            opacity: 0;
+            transform: scale(0.8) translateY(30px);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+    
+    .confirm-modal .confirm-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        margin: 0 auto 12px;
+        animation: iconPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .confirm-modal .confirm-icon.question {
+        background: #fff3cd;
+        color: #f59e0b;
+    }
+    
+    .confirm-modal .confirm-icon.warning {
+        background: #f8d7da;
+        color: #dc3545;
+    }
+    
+    @keyframes iconPop {
+        0% {
+            transform: scale(0) rotate(-20deg);
+        }
+        60% {
+            transform: scale(1.1) rotate(3deg);
+        }
+        100% {
+            transform: scale(1) rotate(0deg);
+        }
+    }
+    
+    .confirm-modal .confirm-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 4px;
+    }
+    
+    .confirm-modal .confirm-subtitle {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 4px;
+    }
+    
+    .confirm-modal .confirm-order-id {
+        display: inline-block;
+        background: #f8f6f4;
+        padding: 4px 16px;
+        border-radius: 20px;
+        font-weight: 700;
+        color: #6F4E37;
+        font-size: 14px;
+        margin: 4px 0 12px;
+    }
+    
+    .confirm-modal .confirm-message {
+        font-size: 13px;
+        color: #999;
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+    
+    .confirm-modal .confirm-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .confirm-modal .confirm-actions .btn {
+        flex: 1;
+        padding: 10px 16px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+    
+    .confirm-modal .confirm-actions .btn:active {
+        transform: scale(0.95);
+    }
+    
+    .confirm-modal .confirm-actions .btn-cancel {
+        background: #f5f5f5;
+        color: #666;
+    }
+    
+    .confirm-modal .confirm-actions .btn-cancel:hover {
+        background: #eee;
+    }
+    
+    .confirm-modal .confirm-actions .btn-confirm {
+        background: #6F4E37;
+        color: white;
+    }
+    
+    .confirm-modal .confirm-actions .btn-confirm:hover {
+        background: #5a3d2b;
+        transform: scale(1.02);
+    }
+    
+    .confirm-modal .confirm-actions .btn-confirm.success {
+        background: #28a745;
+    }
+    
+    .confirm-modal .confirm-actions .btn-confirm.success:hover {
+        background: #218838;
+    }
+    
+    .confirm-modal .confirm-actions .btn-confirm.danger {
+        background: #dc3545;
+    }
+    
+    .confirm-modal .confirm-actions .btn-confirm.danger:hover {
+        background: #c82333;
+    }
+    
+    /* ============================================================
+       FEEDBACK MODAL
+       ============================================================ */
+    .feedback-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(8px);
+        z-index: 99999;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        animation: overlayFade 0.4s ease;
+    }
+    
+    .feedback-modal-overlay.show {
+        display: flex;
+    }
+    
+    .feedback-modal {
+        background: white;
+        border-radius: 24px;
+        max-width: 420px;
+        width: 100%;
+        padding: 40px 32px 32px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        animation: modalPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.35);
+    }
+    
+    @keyframes modalPop {
+        0% {
+            opacity: 0;
+            transform: scale(0.7) translateY(40px) rotate(-5deg);
+        }
+        60% {
+            opacity: 1;
+            transform: scale(1.02) translateY(-4px) rotate(0.5deg);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1) translateY(0) rotate(0deg);
+        }
+    }
+    
+    .feedback-modal .icon-wrapper {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 16px;
+    }
+    
+    .feedback-modal .icon-wrapper .ring {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 50%;
+        border: 4px solid;
+        animation: ringPulse 2s ease-in-out infinite;
+    }
+    
+    .feedback-modal .icon-wrapper .ring:nth-child(2) {
+        animation-delay: 0.6s;
+    }
+    
+    @keyframes ringPulse {
+        0% {
+            transform: scale(1);
+            opacity: 0.6;
+        }
+        50% {
+            transform: scale(1.2);
+            opacity: 0;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 0;
+        }
+    }
+    
+    .feedback-modal .icon-wrapper .icon {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 44px;
+        color: white;
+        position: relative;
+        z-index: 2;
+        animation: iconPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .feedback-modal .icon-wrapper.success .ring {
+        border-color: #28a745;
+    }
+    .feedback-modal .icon-wrapper.success .icon {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        box-shadow: 0 8px 32px rgba(40, 167, 69, 0.35);
+    }
+    
+    .feedback-modal .icon-wrapper.warning .ring {
+        border-color: #ffc107;
+    }
+    .feedback-modal .icon-wrapper.warning .icon {
+        background: linear-gradient(135deg, #ffc107, #f59e0b);
+        box-shadow: 0 8px 32px rgba(255, 193, 7, 0.35);
+    }
+    
+    .feedback-modal .icon-wrapper.error .ring {
+        border-color: #dc3545;
+    }
+    .feedback-modal .icon-wrapper.error .icon {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        box-shadow: 0 8px 32px rgba(220, 53, 69, 0.35);
+    }
+    
+    .feedback-modal .icon-wrapper.info .ring {
+        border-color: #17a2b8;
+    }
+    .feedback-modal .icon-wrapper.info .icon {
+        background: linear-gradient(135deg, #17a2b8, #0d6efd);
+        box-shadow: 0 8px 32px rgba(23, 162, 184, 0.35);
+    }
+    
+    .feedback-modal .icon-wrapper .check-icon {
+        stroke-dasharray: 60;
+        stroke-dashoffset: 60;
+        animation: drawCheck 0.6s ease 0.3s both;
+    }
+    
+    @keyframes drawCheck {
+        0% {
+            stroke-dashoffset: 60;
+            opacity: 0;
+        }
+        100% {
+            stroke-dashoffset: 0;
+            opacity: 1;
+        }
+    }
+    
+    .feedback-modal .icon-wrapper .spin-icon {
+        animation: spinIcon 1.2s linear infinite;
+    }
+    
+    @keyframes spinIcon {
+        100% { transform: rotate(360deg); }
+    }
+    
+    .feedback-modal .modal-title {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        animation: fadeUp 0.5s ease 0.2s both;
+    }
+    
+    .feedback-modal .modal-title.success { color: #28a745; }
+    .feedback-modal .modal-title.warning { color: #f59e0b; }
+    .feedback-modal .modal-title.error { color: #dc3545; }
+    .feedback-modal .modal-title.info { color: #0d6efd; }
+    
+    .feedback-modal .modal-subtitle {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 4px;
+        animation: fadeUp 0.5s ease 0.3s both;
+    }
+    
+    .feedback-modal .modal-order-id {
+        display: inline-block;
+        background: #f8f6f4;
+        padding: 4px 16px;
+        border-radius: 20px;
+        font-weight: 700;
+        color: #6F4E37;
+        font-size: 14px;
+        margin: 4px 0 12px;
+        animation: fadeUp 0.5s ease 0.35s both;
+    }
+    
+    .feedback-modal .modal-message {
+        font-size: 13px;
+        color: #999;
+        margin-bottom: 20px;
+        line-height: 1.5;
+        animation: fadeUp 0.5s ease 0.4s both;
+    }
+    
+    .feedback-modal .modal-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        animation: fadeUp 0.5s ease 0.5s both;
+    }
+    
+    .feedback-modal .modal-actions .btn {
+        flex: 1;
+        padding: 10px 16px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 13px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        text-align: center;
+        min-width: 80px;
+    }
+    
+    .feedback-modal .modal-actions .btn-primary {
+        background: #6F4E37;
+        color: white;
+    }
+    
+    .feedback-modal .modal-actions .btn-primary:hover {
+        background: #5a3d2b;
+        transform: scale(1.02);
+    }
+    
+    .feedback-modal .modal-actions .btn-success {
         background: #28a745;
         color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        z-index: 9999;
-        display: none;
-        animation: slideUp 0.3s ease;
-        font-size: 14px;
     }
     
-    @keyframes slideUp {
-        from { transform: translateY(20px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
+    .feedback-modal .modal-actions .btn-success:hover {
+        background: #218838;
+        transform: scale(1.02);
     }
     
-    .order-detail-modal .modal-content {
-        border-radius: 12px;
+    .feedback-modal .modal-actions .btn-danger {
+        background: #dc3545;
+        color: white;
     }
     
-    @media (max-width: 992px) {
-        .queue-columns {
-            grid-template-columns: 1fr 1fr 1fr;
+    .feedback-modal .modal-actions .btn-danger:hover {
+        background: #c82333;
+        transform: scale(1.02);
+    }
+    
+    .feedback-modal .modal-actions .btn-outline {
+        background: transparent;
+        color: #666;
+        border: 1px solid #e8e8e8;
+    }
+    
+    .feedback-modal .modal-actions .btn-outline:hover {
+        border-color: #6F4E37;
+        color: #6F4E37;
+    }
+    
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
         }
-        .queue-column {
-            max-height: 260px;
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
-        .queue-header {
-            flex-direction: column;
-            align-items: stretch;
+    }
+    
+    .confetti-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        overflow: hidden;
+        border-radius: 24px;
+    }
+    
+    .confetti-piece {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        opacity: 0;
+        animation: confettiFall 2.5s ease-in forwards;
+    }
+    
+    .confetti-piece:nth-child(1) { left: 10%; animation-delay: 0.1s; background: #ff6b6b; transform: rotate(45deg); }
+    .confetti-piece:nth-child(2) { left: 20%; animation-delay: 0.3s; background: #feca57; transform: rotate(90deg); }
+    .confetti-piece:nth-child(3) { left: 30%; animation-delay: 0.5s; background: #48dbfb; transform: rotate(135deg); }
+    .confetti-piece:nth-child(4) { left: 40%; animation-delay: 0.7s; background: #ff9ff3; transform: rotate(20deg); }
+    .confetti-piece:nth-child(5) { left: 50%; animation-delay: 0.2s; background: #54a0ff; transform: rotate(70deg); }
+    .confetti-piece:nth-child(6) { left: 60%; animation-delay: 0.4s; background: #5f27cd; transform: rotate(110deg); }
+    .confetti-piece:nth-child(7) { left: 70%; animation-delay: 0.6s; background: #ff9f43; transform: rotate(30deg); }
+    .confetti-piece:nth-child(8) { left: 80%; animation-delay: 0.8s; background: #00d2d3; transform: rotate(80deg); }
+    .confetti-piece:nth-child(9) { left: 90%; animation-delay: 0.15s; background: #f368e0; transform: rotate(140deg); }
+    .confetti-piece:nth-child(10) { left: 15%; animation-delay: 0.45s; background: #ffc048; transform: rotate(55deg); }
+    .confetti-piece:nth-child(11) { left: 45%; animation-delay: 0.25s; background: #4bc0c0; transform: rotate(100deg); }
+    .confetti-piece:nth-child(12) { left: 75%; animation-delay: 0.55s; background: #e15f41; transform: rotate(15deg); }
+    
+    @keyframes confettiFall {
+        0% {
+            opacity: 1;
+            transform: translateY(-20px) rotate(0deg) scale(1);
         }
-        .queue-header .title-section {
-            justify-content: center;
-        }
-        .queue-stats-mini {
-            justify-content: center;
+        100% {
+            opacity: 0;
+            transform: translateY(300px) rotate(720deg) scale(0.3);
         }
     }
     
     @media (max-width: 576px) {
-        .queue-columns {
-            grid-template-columns: 1fr;
+        .feedback-modal {
+            padding: 30px 20px 24px;
+            margin: 10px;
         }
-        .queue-column {
-            border-right: none;
-            border-bottom: 1px solid #f0f0f0;
-            min-height: 80px;
-            max-height: 200px;
+        .feedback-modal .icon-wrapper {
+            width: 80px;
+            height: 80px;
         }
-        .queue-column:last-child {
-            border-bottom: none;
+        .feedback-modal .icon-wrapper .icon {
+            width: 80px;
+            height: 80px;
+            font-size: 34px;
         }
-        .queue-container {
-            max-height: calc(100vh - 160px);
+        .feedback-modal .modal-title { font-size: 19px; }
+        .feedback-modal .modal-actions { flex-direction: column; }
+        .feedback-modal .modal-actions .btn { flex: none; }
+        
+        .confirm-modal {
+            padding: 24px 20px 20px;
+            margin: 10px;
         }
-        .queue-header .title-section h2 {
-            font-size: 16px;
+        .confirm-modal .confirm-icon {
+            width: 56px;
+            height: 56px;
+            font-size: 24px;
         }
-        .queue-stats-mini .stat-pill {
-            font-size: 10px;
-            padding: 2px 8px;
-        }
-        .order-card-small {
-            padding: 8px 10px;
-        }
-        .order-card-small .order-id {
-            font-size: 13px;
-        }
-        .order-card-small .order-actions .btn {
-            font-size: 10px;
-            padding: 3px 10px;
-        }
+        .confirm-modal .confirm-title { font-size: 17px; }
+        .confirm-modal .confirm-actions { flex-direction: column; }
+        .confirm-modal .confirm-actions .btn { flex: none; }
     }
 </style>
 
@@ -664,17 +1103,289 @@
     </div>
 </div>
 
-<!-- Notification Toast -->
-<div class="notification-toast" id="notificationToast">
-    <i class="fas fa-check-circle me-2"></i>
-    <span id="notificationMessage">Order updated!</span>
+<!-- ============================================================
+     CONFIRMATION MODAL
+     ============================================================ -->
+<div class="confirm-modal-overlay" id="confirmModal">
+    <div class="confirm-modal">
+        <div class="confirm-icon question" id="confirmIcon">
+            <i class="fas fa-question-circle"></i>
+        </div>
+        <h3 class="confirm-title" id="confirmTitle">Confirm Action</h3>
+        <p class="confirm-subtitle" id="confirmSubtitle">Are you sure you want to proceed?</p>
+        <div class="confirm-order-id" id="confirmOrderId">#0000</div>
+        <p class="confirm-message" id="confirmMessage">This action cannot be undone.</p>
+        <div class="confirm-actions">
+            <button class="btn btn-cancel" onclick="closeConfirmModal(false)">
+                <i class="fas fa-times me-1"></i> Cancel
+            </button>
+            <button class="btn btn-confirm" id="confirmBtn" onclick="confirmAction()">
+                <i class="fas fa-check me-1"></i> Confirm
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     FEEDBACK MODAL
+     ============================================================ -->
+<div class="feedback-modal-overlay" id="feedbackModal">
+    <div class="feedback-modal">
+        <div class="confetti-container" id="confettiContainer">
+            <div class="confetti-piece"></div>
+            <div class="confetti-piece"></div>
+            <div class="confetti-piece"></div>
+            <div class="confetti-piece"></div>
+            <div class="confetti-piece"></div>
+            <div class="confetti-piece"></div>
+            <div class="confetti-piece"></div>
+            <div class="confetti-piece"></div>
+            <div class="confetti-piece"></div>
+            <div class="confetti-piece"></div>
+            <div class="confetti-piece"></div>
+            <div class="confetti-piece"></div>
+        </div>
+        
+        <div class="icon-wrapper" id="feedbackIconWrapper">
+            <div class="ring"></div>
+            <div class="ring"></div>
+            <div class="icon" id="feedbackIcon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline class="check-icon" points="20 6 9 17 4 12" stroke-dasharray="60" stroke-dashoffset="60"/>
+                </svg>
+            </div>
+        </div>
+        
+        <h3 class="modal-title" id="feedbackTitle">Success!</h3>
+        <p class="modal-subtitle" id="feedbackSubtitle">Order updated successfully</p>
+        <div class="modal-order-id" id="feedbackOrderId">#0000</div>
+        <p class="modal-message" id="feedbackMessage">The order has been processed.</p>
+        
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="closeFeedbackModal()" id="feedbackBtn">
+                <i class="fas fa-check me-1"></i> Continue
+            </button>
+        </div>
+    </div>
 </div>
 
 @push('scripts')
 <script>
     let refreshInterval = null;
     let isRefreshing = false;
+    let feedbackTimeout = null;
+    let pendingAction = null;
+    let pendingSaleId = null;
 
+    // ============================================================
+    // CONFIRMATION MODAL FUNCTIONS
+    // ============================================================
+    function showConfirmModal(title, subtitle, orderId, message, action, actionType) {
+        const modal = document.getElementById('confirmModal');
+        const icon = document.getElementById('confirmIcon');
+        const titleEl = document.getElementById('confirmTitle');
+        const subtitleEl = document.getElementById('confirmSubtitle');
+        const orderIdEl = document.getElementById('confirmOrderId');
+        const msgEl = document.getElementById('confirmMessage');
+        const btn = document.getElementById('confirmBtn');
+        
+        // Reset icon
+        icon.className = 'confirm-icon';
+        if (actionType === 'danger' || actionType === 'cancel') {
+            icon.classList.add('warning');
+            icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        } else {
+            icon.classList.add('question');
+            icon.innerHTML = '<i class="fas fa-question-circle"></i>';
+        }
+        
+        // Set text
+        titleEl.textContent = title;
+        subtitleEl.textContent = subtitle || '';
+        orderIdEl.textContent = orderId ? '#' + orderId : '';
+        orderIdEl.style.display = orderId ? 'block' : 'none';
+        msgEl.textContent = message || '';
+        
+        // Style button
+        btn.className = 'btn btn-confirm';
+        if (actionType === 'success' || actionType === 'accept') {
+            btn.classList.add('success');
+            btn.innerHTML = '<i class="fas fa-check me-1"></i> Yes, Accept';
+        } else if (actionType === 'danger' || actionType === 'cancel') {
+            btn.classList.add('danger');
+            btn.innerHTML = '<i class="fas fa-trash me-1"></i> Yes, Cancel';
+        } else if (actionType === 'ready') {
+            btn.classList.add('success');
+            btn.innerHTML = '<i class="fas fa-utensils me-1"></i> Yes, Mark Ready';
+        } else if (actionType === 'complete') {
+            btn.classList.add('success');
+            btn.innerHTML = '<i class="fas fa-check-double me-1"></i> Yes, Complete';
+        } else {
+            btn.classList.add('success');
+            btn.innerHTML = '<i class="fas fa-check me-1"></i> Confirm';
+        }
+        
+        // Store pending action
+        pendingAction = action;
+        pendingSaleId = orderId;
+        
+        // Show modal
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeConfirmModal(confirmed) {
+        const modal = document.getElementById('confirmModal');
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+        
+        if (confirmed && pendingAction) {
+            pendingAction();
+        }
+        
+        pendingAction = null;
+        pendingSaleId = null;
+    }
+
+    function confirmAction() {
+        closeConfirmModal(true);
+    }
+
+    // Close on outside click
+    document.getElementById('confirmModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeConfirmModal(false);
+        }
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeConfirmModal(false);
+        }
+    });
+
+    // ============================================================
+    // FEEDBACK MODAL FUNCTIONS
+    // ============================================================
+    function showFeedback(type, title, subtitle, orderId, message) {
+        const modal = document.getElementById('feedbackModal');
+        const iconWrapper = document.getElementById('feedbackIconWrapper');
+        const icon = document.getElementById('feedbackIcon');
+        const titleEl = document.getElementById('feedbackTitle');
+        const subtitleEl = document.getElementById('feedbackSubtitle');
+        const orderIdEl = document.getElementById('feedbackOrderId');
+        const msgEl = document.getElementById('feedbackMessage');
+        const btn = document.getElementById('feedbackBtn');
+        const confetti = document.getElementById('confettiContainer');
+        
+        iconWrapper.className = 'icon-wrapper';
+        titleEl.className = 'modal-title';
+        
+        const configs = {
+            success: {
+                wrapperClass: 'success',
+                iconHtml: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline class="check-icon" points="20 6 9 17 4 12" stroke-dasharray="60" stroke-dashoffset="60"/>
+                </svg>`,
+                titleClass: 'success',
+                btnClass: 'btn-success',
+                btnText: '<i class="fas fa-check me-1"></i> Continue',
+                showConfetti: true
+            },
+            warning: {
+                wrapperClass: 'warning',
+                iconHtml: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 9v4M12 17h.01" stroke-width="2"/>
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                </svg>`,
+                titleClass: 'warning',
+                btnClass: 'btn-primary',
+                btnText: '<i class="fas fa-check me-1"></i> Got it',
+                showConfetti: false
+            },
+            error: {
+                wrapperClass: 'error',
+                iconHtml: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>`,
+                titleClass: 'error',
+                btnClass: 'btn-danger',
+                btnText: '<i class="fas fa-times me-1"></i> Close',
+                showConfetti: false
+            },
+            info: {
+                wrapperClass: 'info',
+                iconHtml: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>`,
+                titleClass: 'info',
+                btnClass: 'btn-primary',
+                btnText: '<i class="fas fa-check me-1"></i> OK',
+                showConfetti: false
+            }
+        };
+        
+        const config = configs[type] || configs.info;
+        
+        iconWrapper.classList.add(config.wrapperClass);
+        icon.innerHTML = config.iconHtml;
+        titleEl.classList.add(config.titleClass);
+        titleEl.textContent = title;
+        subtitleEl.textContent = subtitle || '';
+        orderIdEl.textContent = orderId ? '#' + orderId : '';
+        orderIdEl.style.display = orderId ? 'block' : 'none';
+        msgEl.textContent = message || '';
+        btn.className = 'btn ' + config.btnClass;
+        btn.innerHTML = config.btnText;
+        
+        if (config.showConfetti) {
+            confetti.style.display = 'block';
+            confetti.querySelectorAll('.confetti-piece').forEach(piece => {
+                piece.style.animation = 'none';
+                setTimeout(() => {
+                    piece.style.animation = '';
+                }, 10);
+            });
+        } else {
+            confetti.style.display = 'none';
+        }
+        
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+        if (type === 'success') {
+            if (feedbackTimeout) clearTimeout(feedbackTimeout);
+            feedbackTimeout = setTimeout(() => {
+                closeFeedbackModal();
+            }, 4000);
+        }
+    }
+
+    function closeFeedbackModal() {
+        const modal = document.getElementById('feedbackModal');
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+        
+        if (feedbackTimeout) {
+            clearTimeout(feedbackTimeout);
+            feedbackTimeout = null;
+        }
+    }
+
+    document.getElementById('feedbackModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeFeedbackModal();
+        }
+    });
+
+    // ============================================================
+    // QUEUE FUNCTIONS
+    // ============================================================
     function loadQueue() {
         if (isRefreshing) return;
         isRefreshing = true;
@@ -772,7 +1483,7 @@
         
         if (status === 'pending') {
             buttons += `
-                <button class="btn-accept" onclick="acceptOrder(${saleId})">
+                <button class="btn-accept" onclick="requestAccept(${saleId})">
                     <i class="fas fa-check"></i> Accept
                 </button>
             `;
@@ -780,7 +1491,7 @@
         
         if (status === 'preparing') {
             buttons += `
-                <button class="btn-ready" onclick="markReady(${saleId})">
+                <button class="btn-ready" onclick="requestReady(${saleId})">
                     <i class="fas fa-utensils"></i> Ready
                 </button>
             `;
@@ -795,7 +1506,7 @@
                 `;
             } else {
                 buttons += `
-                    <button class="btn-complete-order" onclick="completeOrder(${saleId})">
+                    <button class="btn-complete-order" onclick="requestComplete(${saleId})">
                         <i class="fas fa-check-double"></i> Complete
                     </button>
                 `;
@@ -804,7 +1515,7 @@
         
         if (status !== 'completed' && status !== 'cancelled') {
             buttons += `
-                <button class="btn-cancel" onclick="cancelOrder(${saleId})">
+                <button class="btn-cancel" onclick="requestCancel(${saleId})">
                     <i class="fas fa-times"></i>
                 </button>
             `;
@@ -819,7 +1530,276 @@
         return buttons;
     }
 
-    // ============= ASSIGN RIDER =============
+    // ============================================================
+    // ORDER ACTIONS WITH CONFIRMATION
+    // ============================================================
+    function requestAccept(saleId) {
+        showConfirmModal(
+            'Accept Order',
+            'This order will be moved to preparing.',
+            saleId,
+            'The customer will be notified that their order is now being prepared.',
+            function() { executeAccept(saleId); },
+            'accept'
+        );
+    }
+
+    function executeAccept(saleId) {
+        const btn = document.querySelector(`[onclick*="requestAccept(${saleId})"]`);
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        }
+        
+        fetch(`/barista/orders/${saleId}/accept`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Accept';
+            }
+            
+            if (data.success) {
+                showFeedback(
+                    'success',
+                    '✅ Order Accepted!',
+                    'The order has been accepted and is now being prepared.',
+                    saleId,
+                    'The customer has been notified that their order is now being prepared.'
+                );
+                loadQueue();
+            } else {
+                showFeedback(
+                    'error',
+                    '❌ Failed to Accept',
+                    'There was an error accepting this order.',
+                    saleId,
+                    data.message || 'Please try again.'
+                );
+            }
+        })
+        .catch(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Accept';
+            }
+            showFeedback(
+                'error',
+                '❌ Error',
+                'An error occurred while accepting the order.',
+                saleId,
+                'Please check your connection and try again.'
+            );
+        });
+    }
+
+    function requestReady(saleId) {
+        showConfirmModal(
+            'Mark as Ready',
+            'This order will be marked as ready for pickup/delivery.',
+            saleId,
+            'The customer will be notified that their order is ready.',
+            function() { executeReady(saleId); },
+            'ready'
+        );
+    }
+
+    function executeReady(saleId) {
+        const btn = document.querySelector(`[onclick*="requestReady(${saleId})"]`);
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        }
+        
+        fetch(`/barista/orders/${saleId}/ready`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-utensils"></i> Ready';
+            }
+            
+            if (data.success) {
+                showFeedback(
+                    'success',
+                    '✅ Order Ready!',
+                    'The order has been marked as ready.',
+                    saleId,
+                    'The customer has been notified that their order is ready.'
+                );
+                loadQueue();
+            } else {
+                showFeedback(
+                    'error',
+                    '❌ Failed to Mark Ready',
+                    'There was an error marking this order as ready.',
+                    saleId,
+                    data.message || 'Please try again.'
+                );
+            }
+        })
+        .catch(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-utensils"></i> Ready';
+            }
+            showFeedback(
+                'error',
+                '❌ Error',
+                'An error occurred while marking the order as ready.',
+                saleId,
+                'Please check your connection and try again.'
+            );
+        });
+    }
+
+    function requestComplete(saleId) {
+        showConfirmModal(
+            'Complete Order',
+            'This order will be marked as completed.',
+            saleId,
+            'The customer will be notified that their order is complete.',
+            function() { executeComplete(saleId); },
+            'complete'
+        );
+    }
+
+    function executeComplete(saleId) {
+        const btn = document.querySelector(`[onclick*="requestComplete(${saleId})"]`);
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        }
+        
+        fetch(`/barista/orders/${saleId}/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check-double"></i> Complete';
+            }
+            
+            if (data.success) {
+                showFeedback(
+                    'success',
+                    '🎉 Order Completed!',
+                    'The order has been completed successfully.',
+                    saleId,
+                    'The customer has been notified that their order is complete.'
+                );
+                loadQueue();
+            } else {
+                showFeedback(
+                    'error',
+                    '❌ Failed to Complete',
+                    'There was an error completing this order.',
+                    saleId,
+                    data.message || 'Please try again.'
+                );
+            }
+        })
+        .catch(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check-double"></i> Complete';
+            }
+            showFeedback(
+                'error',
+                '❌ Error',
+                'An error occurred while completing the order.',
+                saleId,
+                'Please check your connection and try again.'
+            );
+        });
+    }
+
+    function requestCancel(saleId) {
+        showConfirmModal(
+            'Cancel Order',
+            'This order will be cancelled.',
+            saleId,
+            'The customer will be notified of the cancellation.',
+            function() { executeCancel(saleId); },
+            'cancel'
+        );
+    }
+
+    function executeCancel(saleId) {
+        const btn = document.querySelector(`[onclick*="requestCancel(${saleId})"]`);
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        }
+        
+        fetch(`/barista/orders/${saleId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-times"></i>';
+            }
+            
+            if (data.success) {
+                showFeedback(
+                    'warning',
+                    '⚠️ Order Cancelled',
+                    'The order has been cancelled.',
+                    saleId,
+                    'The customer has been notified of the cancellation.'
+                );
+                loadQueue();
+            } else {
+                showFeedback(
+                    'error',
+                    '❌ Failed to Cancel',
+                    'There was an error cancelling this order.',
+                    saleId,
+                    data.message || 'Please try again.'
+                );
+            }
+        })
+        .catch(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-times"></i>';
+            }
+            showFeedback(
+                'error',
+                '❌ Error',
+                'An error occurred while cancelling the order.',
+                saleId,
+                'Please check your connection and try again.'
+            );
+        });
+    }
+
+    // ============================================================
+    // OTHER FUNCTIONS
+    // ============================================================
     function assignRider(saleId) {
         const modal = new bootstrap.Modal(document.getElementById('assignRiderModal'));
         document.getElementById('assign_sale_id').value = saleId;
@@ -892,17 +1872,35 @@
             btn.innerHTML = '<i class="fas fa-check me-1"></i> Assign Rider';
             
             if (data.success) {
-                alert('✅ ' + data.message);
+                showFeedback(
+                    'success',
+                    '✅ Rider Assigned!',
+                    'A delivery rider has been assigned to this order.',
+                    saleId,
+                    'Rider: ' + (document.getElementById('rider_select').selectedOptions[0]?.text || 'Unknown')
+                );
                 bootstrap.Modal.getInstance(document.getElementById('assignRiderModal')).hide();
                 loadQueue();
             } else {
-                alert('❌ ' + data.message);
+                showFeedback(
+                    'error',
+                    '❌ Failed to Assign Rider',
+                    'There was an error assigning a rider.',
+                    saleId,
+                    data.message || 'Please try again.'
+                );
             }
         })
         .catch(error => {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-check me-1"></i> Assign Rider';
-            alert('Error: ' + error);
+            showFeedback(
+                'error',
+                '❌ Error',
+                'An error occurred while assigning a rider.',
+                saleId,
+                'Please check your connection and try again.'
+            );
         });
     }
 
@@ -933,119 +1931,16 @@
             });
     }
 
-    function acceptOrder(saleId) {
-        if (!confirm('Accept this order?')) return;
-        
-        fetch(`/barista/orders/${saleId}/accept`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification('Order accepted!');
-                loadQueue();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(() => alert('Error accepting order'));
-    }
-
-    function markReady(saleId) {
-        if (!confirm('Mark this order as ready?')) return;
-        
-        fetch(`/barista/orders/${saleId}/ready`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification('Order marked ready!');
-                loadQueue();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(() => alert('Error marking order ready'));
-    }
-
-    function completeOrder(saleId) {
-        if (!confirm('Complete this order?')) return;
-        
-        const btn = document.querySelector(`[onclick*="completeOrder(${saleId})"]`);
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        }
-        
-        fetch(`/barista/orders/${saleId}/complete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification('Order completed!');
-                loadQueue();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(() => {
-            alert('Error completing order');
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = 'Complete';
-            }
-        });
-    }
-
-    function cancelOrder(saleId) {
-        if (!confirm('Cancel this order?')) return;
-        
-        fetch(`/barista/orders/${saleId}/cancel`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification('Order cancelled');
-                loadQueue();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(() => alert('Error cancelling order'));
-    }
-
     function refreshQueue() {
         loadQueue();
-        showNotification('Refreshing...');
-    }
-
-    function showNotification(message) {
-        const toast = document.getElementById('notificationToast');
-        const msg = document.getElementById('notificationMessage');
-        msg.textContent = message;
-        toast.style.display = 'block';
-        setTimeout(() => {
-            toast.style.display = 'none';
-        }, 3000);
+        showFeedback(
+            'info',
+            '🔄 Refreshing...',
+            'The queue is being refreshed.',
+            null,
+            'Please wait a moment.'
+        );
+        setTimeout(closeFeedbackModal, 1500);
     }
 
     document.addEventListener('DOMContentLoaded', function() {
